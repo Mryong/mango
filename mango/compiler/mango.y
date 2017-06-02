@@ -1,0 +1,56 @@
+%{
+#include <stdio.h>
+#include "mangoc.h"
+#define YYDEBUG 1
+#define YYERROR_VERBOSE
+
+%}
+
+%union{
+    char     *identifer;
+    Expression  *expression;
+}
+
+%token <expression> INT_LITERAL
+%token <expression> DOUBLE_LITERAL
+%token <expression> STRING_LITERAL
+%token <expression> REGEXP_LITERAL
+%token <identifer> IDENTIFER
+%token IF ELSE ELSIF SWITHC CASE DEFAULT_T WHILE DO_T FOR FOREACH
+        RETURN_T BREAK CONTINUE NULL_T 
+        LP RP LC RC LB RB SEMICOLON COLON COMMA  ASSIGN_T LOGICAL_AND LOGICAL_OR
+        EQ NE GT GE LT LE ADD SUB MUL DIV MOD BIT_AND BIT_OR BIT_XOR BIT_NOT
+        TRUE_T FALSE_T EXCLAMATION  DOT_T
+        ADD_ASSIGN_T SUB_ASSIGN_T MUL_ASSIGN_T DIV_ASSIGN_T MOD_ASSIGN_T
+        INCREMENT DECREMENT TRY CATCH FINALLY THROW THROWS 
+        VOID_T BOOLEAN_T INT_T DOUBLE_T STRING_T NATIVE_POINTER_T
+        NEW REQUIRE RENAME
+        CLASS_T INTERFACE_T PUBLIC_T PRIVATE_T VIRTUAL_T OVERRIED_T
+        ABSTRACT_T THIS_T SUPER_T CONSTRUCTOR INSTANCEOF
+        DOWN_CAST_BEGIN DOWN_CAST_END DELEGATE FINAL ENUM CONST
+
+
+
+
+
+
+
+
+
+%%
+
+unit: IF LP expression RP block {
+			printf("if valid\n");
+		}
+		;
+
+expression: INT_LITERAL | DOUBLE_LITERAL | STRING_LITERAL | IDENTIFER
+		;
+
+block: LC RC
+        ;
+
+
+%%
+
+
