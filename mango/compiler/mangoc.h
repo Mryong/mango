@@ -124,9 +124,6 @@ typedef enum {
 	EOF_IN_C_COMMENT_ERR,
 	EOF_IN_STRING_LITERAL_ERR,
 	COMPLILE_ERROR_COUNT_PLUS_1
-	
-	
-	
 }CompileError;
 
 
@@ -178,26 +175,321 @@ typedef enum {
 
 }ExpressionKind;
 
-
+typedef struct Expression_tag Expression;
 typedef struct TypeSpecifier_tag TypeSpecifier;
+typedef struct ClassDefinition_tag ClassDefinition;
+typedef struct DelegateDefinition_tag DelegateDefinition;
+typedef struct EnumDefinition_tag EnumDefinition;
+typedef struct FunctionDefinition_tag FunctionDefinition;
+typedef struct ConstantDefinition_tag ConstantDefinition;
+typedef struct MemberDeclaration_tag MemberDeclaration;
+
+typedef struct Statement_tag Statement;
+
+
+typedef struct PackageName_tag{
+	char	*name;
+	struct PackageName_tag	*next;
+}PackageName;
+
+typedef struct RequireList_tag{
+	PackageName	*package_name;
+	int line_number;
+	struct RequireList_tag	*next;
+}RequireList;
+
+
+typedef struct RenameList_tag{
+	PackageName	*package_name;
+	char	*original_name;
+	char	*renamed_name;
+	int	line_number;
+	struct	RequireList_tag	*next;
+}RenameList;
+
+
+typedef struct ArgumentList_tag {
+	Expression	*expression;
+	struct ArgumentList_tag	*next;
+}ArgumentList;
+
+typedef struct ParaemeterList_tag{
+	TypeSpecifier	*type;
+	char	*name;
+	int	line_number;
+	struct PackageName_tag	*next;
+}ParaemeterList;
+
+typedef enum {
+	FUNCTION_DERIVE,
+	ARRAY_DERIVE
+}DeriveTag;
+
+
+typedef struct{
+	char			*identifer;
+	ClassDefinition	*class_definition;
+	int				line_number;
+}ExceptionRef;
+
+typedef struct ExceptionList_tag{
+	ExceptionRef				*exception;
+	struct ExceptionList_tag	*next;
+}ExceptionList;
+
+typedef struct {
+	ParaemeterList	*parameter_list;
+	ExceptionList	*throws;
+}FunctionDerive;
+
+typedef struct {
+	int dummy;
+}ArrayDerive;
+
+typedef struct TypeDerive_tag{
+	DeriveTag	tag;
+	union{
+		FunctionDerive	function_d;
+		ArrayDerive		array_d;
+	}u;
+	struct TypeDerive_tag	*next;
+
+}TypeDerive;
+
+
+
+
+
 struct TypeSpecifier_tag{
+	DVM_BaseType	base_type;
 	char *identifier;
+	union{
+		struct{
+			ClassDefinition	*class_definition;
+			int class_index;
+		}class_ref;
+		
+		struct{
+			DelegateDefinition	*delegate_definition;
+			int	delegate_index;
+		}delegate_ref;
+		
+		struct{
+			EnumDefinition *enum_definition;
+			int enum_index;
+		}enum_ref;
+	}u;
+	int	line_number;
+	TypeDerive *derive;
 };
 
 
 
-typedef struct Expression_tag Expression;
+typedef struct {
+	TypeSpecifier	*type;
+	char			*name;
+	Expression		*initializer;
+	DVM_Boolean		*is_final;
+	int				variable_index;
+	DVM_Boolean		is_loacl;
+}Declaration;
+
+typedef struct DeclarationList_tag{
+	Declaration	*declaration;
+	struct DeclarationList_tag	*next;
+}DeclarationList;
+
+typedef struct {
+	FunctionDefinition *function_definition;
+	int	function_index;
+}FunctionIdentifier;
+
+
+
+typedef struct {
+	ConstantDefinition	*constant_definition;
+	int	constant_index;
+}ConstantIdentifier;
+
+typedef enum {
+	VARIABLE_IDENTIFER,
+	FUNCTION_IDENTIFER,
+	CONSTANT_IDENTIFER
+}IdentifierKind;
+
+
+typedef struct {
+	char	*name;
+	IdentifierKind	kind;
+	union{
+		Declaration			*declaration;
+		FunctionIdentifier	*function;
+		ConstantIdentifier	*constant;
+	}u;
+}IdentifierExpression;
+
+
+typedef struct {
+	Expression	*left;
+	Expression	*right;
+}CommaExpression;
+
+
+typedef enum {
+	NORMAL_ASSIGN,
+	ADD_ASSIGN,
+	SUB_ASSIGN,
+	MUL_ASSIGN,
+	DIV_ASSIGN,
+	MOD_ASSIGN
+}AssignmentOperator;
+
+
+typedef struct{
+	AssignmentOperator	operator;
+	Expression	*left;
+	Expression	*operand;
+}AssignmentExpression;
+
+
+typedef struct {
+	Expression	*left;
+	Expression	*right;
+}BinaryExpression;
+
+
+typedef struct {
+	Expression	*function;
+	ArgumentList	*argument;
+}FunctionCallExpress;
+
+typedef struct ExpressionList_tag{
+	Expression	*expression;
+	struct ExceptionList_tag	*next;
+}ExpressionList;
+
+typedef struct {
+	Expression	*array;
+	Expression	*index;
+}IndexExpression;
+
+typedef struct {
+	char	*member_name;
+	Expression	*expression;
+	MemberDeclaration	*declaration;
+	int method_index;
+}MemberExpression;
+
+typedef struct {
+	Expression	*operand;
+}IncrementOrDecrement;
+
+typedef struct {
+	Expression	*expression;
+	TypeSpecifier	*type;
+}InstanceofExpression;
+
+typedef struct {
+	Expression	*operand;
+	TypeSpecifier	*type;
+}DownCastExpression;
+
+typedef struct {
+	Expression	*operand;
+	ClassDefinition	*interface_definition;
+	int	interface_index;
+}UpCastExpression;
+
+
+typedef enum {
+	INT_TO_DOUBLE_CAST,
+	DOUBLE_TO_INT_CAST,
+	BOOLEAN_TO_STRING_CAST,
+	INT_TO_STRING_CAST,
+	DOUBLE_TO_STRING_CAST,
+	ENUM_TO_STRING_CAST,
+	FUNCTION_TO_DELEGATE_CAST
+}CastType;
+
+typedef struct {
+	CastType	type;
+	Expression	*operand;
+}CastExpression;
+
+
+typedef struct {
+	char	*class_name;
+	ClassDefinition	*class_definition;
+	int		*class_index;
+	char	*method_name;
+	MemberDeclaration	*method_delclaration;
+	ArgumentList	*argument;
+}NewExpression;
+
+
+typedef struct ArrayDemension_tag{
+	Expression	*expression;
+	struct	ArgumentList_tag	*next;
+}ArrayDemension;
+
+
+typedef struct {
+	TypeSpecifier	*type;
+	ArrayDemension	*demension;
+}ArrayCreation;
+
+typedef struct Enumerator_tab {
+	char	*name;
+	int		value;
+	struct	ExceptionList_tag	*next;
+}Enumerator;
+
+
+typedef struct {
+	EnumDefinition	*enum_definition;
+	Enumerator		*enumrator;
+}EnumeratorExpression;
+
+
 struct Expression_tag{
+	TypeSpecifier	*type;
 	ExpressionKind kind;
 	int line_number;
 	union {
-		DVM_Boolean boolean_value;
-		int int_value;
-		double double_value;
-		DVM_Char	*string_value;
+		DVM_Boolean				boolean_value;
+		int						int_value;
+		double					double_value;
+		DVM_Char				*string_value;
+		IdentifierExpression	*identifer_express;
+		CommaExpression			*comma_expression;
+		AssignmentExpression	*assignment_expression;
+		BinaryExpression		*binary_expression;
+		Expression				*minus_expression;
+		Expression				*logic_not;
+		Expression				*bit_not;
+		FunctionCallExpress		*function_call_expression;
+		MemberExpression		*member_expression;
+		ExceptionList			*array_literal;
+		IndexExpression			*index_expression;
+		IncrementOrDecrement	*inc_dec;
+		InstanceofExpression	*instanceof;
+		DownCastExpression		*down_cast;
+		CastExpression			*cast;
+		UpCastExpression		*up_cast;
+		NewExpression			*new_e;
+		ArrayCreation			*array_creation;
+		EnumeratorExpression	*enumerator;
 	}u;
 	
 };
+
+
+typedef struct StatementList_tag{
+	Statement	*statement;
+	struct	StatementList_tag	*next;
+}StatementList;
+
+
 
 /* create.c */
 Expression *mgc_alloc_expression(ExpressionKind kind);
