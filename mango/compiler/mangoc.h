@@ -490,6 +490,120 @@ typedef struct StatementList_tag{
 }StatementList;
 
 
+typedef enum {
+	UNDEFINED_BLOCK = 1,
+	FUNCTION_BLOCK,
+	WHILE_STATEMENT_BLOCK,
+	FOR_STATEMENT_BLOCK,
+	DO_WHILE_STATEMENT_BLOCK,
+	TRY_CLAUSE_BLOCK,
+	CATCH_CLAUSE_BLOCK,
+	FINALLY_CLAUSE_BLOCK
+
+}BlockType;
+
+typedef struct {
+	Statement	*statement;
+	int			continue_label;
+	int			break_label;
+}StatementBlockInfo;
+
+
+typedef struct {
+	FunctionDefinition *function;
+	int					end_label;
+}FunctionBlockInfo;
+
+typedef struct Block_tag{
+	BlockType			*type;
+	StatementList		*statement_list;
+	DeclarationList		*declaration_list;
+	struct Block_tag	*out_block;
+	union {
+		FunctionBlockInfo	*function;
+		StatementBlockInfo	*statement;
+	}parent;
+	
+
+}Block;
+
+
+typedef struct Elsif_tag{
+	Expression	*condition;
+	Block	then_block;
+	struct Elsif_tag	*next;
+}Elsif;
+
+typedef struct {
+	Expression	*condition;
+	Block		*then_block;
+	Block		*else_block;
+	Elsif		*elsif_list;
+}IfStatement;
+
+typedef struct CaseList_tag{
+	ExpressionList		*expression_list;
+	Block				*block;
+	struct CaseList_tag	*next;
+}CaseList;
+
+
+typedef struct {
+	Expression	*expression;
+	CaseList	*case_list;
+	Block		*default_block;
+
+}SwitchStatement;
+
+typedef struct {
+	char		*label;
+	Expression	*condition;
+	Block		*block;
+
+}WhileStatement;
+
+typedef struct {
+	char		*label;
+	Expression	*init;
+	Expression	*condition;
+	Expression	*post;
+	Block		*block;
+
+}ForStatement;
+
+
+typedef struct {
+	char		*label;
+	Block		*block;
+	Expression	*condition;
+
+}DoWhileStatement;
+
+typedef struct {
+	char		*label;
+	char		*variable;
+	Expression	*collection;
+	Block		*block;
+}ForeachStatement;
+
+
+typedef struct {
+	Expression	*return_value;
+}ReturnStatement;
+
+
+
+typedef struct {
+	char	*label;
+}BreakStatement;
+
+typedef struct {
+	char	*label;
+}ContinueStatement;
+
+typedef struct CatchClause_tag{
+	
+}CatchClause;
 
 /* create.c */
 Expression *mgc_alloc_expression(ExpressionKind kind);
