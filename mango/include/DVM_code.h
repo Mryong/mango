@@ -29,4 +29,17 @@ typedef enum {
 	DVM_UNSPECIFIED_IDENTIFIER_TYPE
 }DVM_BaseType;
 
+
+typedef enum {
+	DVM_FILE_MODIFIER,
+	DVM_PUBLIC_MODIFIER,
+	DVM_PRIVATE_MODIFIER
+}DVM_AccessModifier;
+
+
+typedef enum {
+	DVM_CLASS_DEFINITION,
+	DVM_INTERFACE_DEFINITION
+}DVM_ClassOrInterface;
+
 #endif /* DVM_code_h */

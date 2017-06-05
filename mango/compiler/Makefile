@@ -2,7 +2,7 @@ TARGET = conpiler.o
 CC = gcc
 ENCODING_FLAG = -DSHIFT_JIS_SOURCE
 CFLAGS = -c -g -Wall -DDEBUG
-OBJS = lex.yy.o y.tab.o create.o string.o
+OBJS = lex.yy.o y.tab.o create.o string.o util.o
 
 INCLUDES = -I ../include
 
@@ -26,6 +26,8 @@ lex.yy.o: lex.yy.c mangoc.h
 
 create.o: create.c mangoc.h
 string.o: string.c mangoc.h
+util.o: mangoc.h
+
 
 clean:
 	-rm ${TARGET} ${OBJS}

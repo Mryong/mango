@@ -11,6 +11,7 @@
 
 #include "DVM.h"
 #include "DVM_code.h"
+#include "MGC.h"
 
 
 
@@ -438,10 +439,10 @@ typedef struct {
 	ArrayDemension	*demension;
 }ArrayCreation;
 
-typedef struct Enumerator_tab {
+typedef struct Enumerator_tag {
 	char	*name;
 	int		value;
-	struct	ExceptionList_tag	*next;
+	struct	Enumerator_tag	*next;
 }Enumerator;
 
 
@@ -499,7 +500,6 @@ typedef enum {
 	TRY_CLAUSE_BLOCK,
 	CATCH_CLAUSE_BLOCK,
 	FINALLY_CLAUSE_BLOCK
-
 }BlockType;
 
 typedef struct {
@@ -602,10 +602,279 @@ typedef struct {
 }ContinueStatement;
 
 typedef struct CatchClause_tag{
+	char			*variable_name;
+	Declaration		*variable_declaration;
+	TypeSpecifier	*type;
+	Block			*block;
+	int				line_number;
+	struct CatchClause_tag	*next;
 	
 }CatchClause;
 
+typedef struct {
+	Block		*try_block;
+	CatchClause	*catch_clause;
+	Block		*finally_block;
+}TryStatement;
+
+typedef struct {
+	Expression	*expression;
+	Declaration	*variable_declaration;
+}ThrowsStatement;
+
+
+typedef enum {
+	EXPRESSION_STATEMENT = 1,
+	IF_STATEMENT,
+	SWITCH_STATEMENT,
+	WHILE_STATEMENT,
+	FOR_STATEMENT,
+	DO_WHILE_STATEMENT,
+	FOREACH_STATEMENT,
+	RETURN_STATEMENT,
+	BREAK_STATEMENT,
+	CONTINUE_STATEMENT,
+	TRY_STATEMENT,
+	THROW_STATEMENT,
+	DECLARATION_STATEMENT,
+	STATEMENT_TYPE_CONT_PLUS_1
+}StatementType;
+
+struct Statement_tag {
+	StatementType		*type;
+	int					line_number;
+	union {
+		Expression		*expression_s;
+		IfStatement		*if_s;
+		SwitchStatement	*switch_s;
+		WhileStatement	*while_s;
+		ForStatement	*for_s;
+		DoWhileStatement	*do_while_s;
+		ForeachStatement	*foreach_s;
+		BreakStatement		*break_s;
+		ContinueStatement	*continue_s;
+		ReturnStatement		*return_s;
+		TryStatement		*try_s;
+		ThrowsStatement		*throw_s;
+		Declaration			*declaration_s;
+	}u;
+};
+
+struct	FunctionDefinition_tag {
+	TypeSpecifier		*type;
+	PackageName			*package_name;
+	char				*name;
+	ParaemeterList		*paraemeter_list;
+	Block				*block;
+	int					*local_variable_count;
+	Declaration			**local_variable;
+	ClassDefinition		*class_definition;
+	ExceptionList		*throws;
+	int					end_line_number;
+	struct FunctionDefinition_tag	*next;
+};
+
+
+
+typedef enum {
+	ABSTRACT_MODIFIER,
+	PUBLIC_MODIFIER,
+	PRIVATE_MODIFIER,
+	OVERRIDE_MODIFIER,
+	VITRAL_MODIFIER,
+	NOT_SPECIFIED_MODIFIER
+
+}ClassOrMemberModifierKind;
+
+
+typedef struct {
+	ClassOrMemberModifierKind	id_abstract;
+	ClassOrMemberModifierKind	access_modifier;
+	ClassOrMemberModifierKind	is_virtual;
+	ClassOrMemberModifierKind	is_override;
+}ClassOrMemberModifierList;
+
+
+typedef struct ExtendsList_tag{
+	char	*identifer;
+	ClassDefinition	*class_definition;
+	struct	Expression_tag	*next;
+}ExtendsList;
+
+typedef enum {
+	METHOD_MEMBER,
+	FIELD_MEMBER
+}MemberKind;
+
+typedef struct {
+	DVM_Boolean			is_constructor;
+	DVM_Boolean			is_abstract;
+	DVM_Boolean			is_virtual;
+	DVM_Boolean			*is_override;
+	FunctionDefinition	*function_definition;
+	int					method_index;
+	
+}MethodMember;
+
+
+typedef struct {
+	char			*name;
+	TypeSpecifier	*type;
+	DVM_Boolean		*is_final;
+	Expression		*initializer;
+	int				field_index;
+}FieldMember;
+
+struct MemberDeclaration_tag{
+	MemberKind		*kind;
+	DVM_AccessModifier	access_modifier;
+	union {
+		FieldMember		*field;
+		MethodMember	*method;
+	}u;
+	int line_number;
+	struct MemberDeclaration_tag	*next;
+};
+
+struct ClassDefinition_tag {
+	DVM_Boolean		*is_abstract;
+	DVM_AccessModifier	access_modifier;
+	DVM_ClassOrInterface class_or_interface;
+	PackageName	*package_name;
+	char		*name;
+	ExceptionList	*extents;
+	ClassDefinition	*super_class;
+	ExceptionList	*interface_list;
+	MemberDeclaration	*member;
+	int line_number;
+	struct	ClassDefinition_tag	*next;
+};
+
+typedef struct CompilerList_tag{
+	MGC_Compiler	*compiler;
+	struct	CompilerList_tag	*next;
+}CompilerList;
+
+
+typedef enum {
+	MGH_SOURCE,
+	MGM_SOURCE
+}SourceSuffix;
+
+typedef enum {
+	FILE_INPUT_MODE,
+	STRING_INPUT_MODE
+}InputMode;
+
+typedef struct {
+	InputMode	*mode;
+	union {
+		struct {
+			FILE	*fp;
+		}file;
+		struct {
+			char	**lines;
+		}string;
+	}u;
+}SourceInput;
+
+
+struct DelegateDefinition_tag {
+	char			*name;
+	TypeSpecifier	*type;
+	ParaemeterList	*paraemeter_list;
+	ExceptionList	*throws;
+	DelegateDefinition	*next;
+};
+
+struct EnumDefinition_tag{
+	PackageName		*package_name;
+	char			*name;
+	Enumerator		*enumerator;
+	int				index;
+	EnumDefinition	*next;
+};
+
+struct ConstantDefinition_tag {
+	PackageName			*package_name;
+	TypeSpecifier		*type;
+	char				*name;
+	Expression			*initializer;
+	int					index;
+	int					line_number;
+	ConstantDefinition	*next;
+};
+
+
+typedef enum {
+	EUC_ENCODING = 1,
+	UTF_8_ENCODING
+}Encoding;
+
+typedef struct {
+	char	*string;
+}VString;
+
+typedef struct {
+	DVM_Char	*string;
+}VWString;
+
+typedef struct {
+	char	*package_name;
+	SourceSuffix	suffix;
+	char	**source_string;
+}BuiltinScript;
+
+
+struct MGC_Compiler_tag{
+	InputMode	input_mode;
+	int			current_line_number;
+};
+
+
+
+
+
+
+/* mango.l */
+void mgc_set_source_string(char **source);
+
+
 /* create.c */
+DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl);
+Declaration	*mgc_create_declaration(DVM_Boolean is_final,TypeSpecifier type, char *identifier);
+PackageName *mgc_create_package_name(char *identifier);
+PackageName	*mgc_chain_package_name(PackageName *list, char *identifier);
+
+RequireList *mgc_create_require_list(PackageName *package_name);
+RequireList *mgc_chain_require_list(RequireList *list,RequireList *add);
+
+RenameList *mgc_create_rename_list(PackageName package_name, char *identifer);
+RenameList *mgc_chain_rename_list(RenameList *list, RenameList add);
+
+void set_require_and_rename_list(RequireList *require_list, RenameList *rename_list);
+
+FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *identifier,
+												   ParaemeterList *paraemeter_list, ExceptionList *exception_list,
+												   Block *block);
+void mgc_function_define(TypeSpecifier *type, char *identifier,
+						 ParaemeterList *paraemeter_list, ExceptionList *exception_list,
+						 Block *block);
+
+ParaemeterList *mgc_create_paraemeter(TypeSpecifier *type, char *identifier);
+ParaemeterList *mgc_chain_paraemeter(ParaemeterList *list, TypeSpecifier *type, char *identifier);
+
+ArgumentList *mgc_create_argument(Expression *expression);
+ArgumentList *mgc_chain_argument(ArgumentList *list,Expression *expression);
+
+ExpressionList *mgc_create_expression_list(Expression *expression);
+ExpressionList *mgc_chain_expression_list(ExpressionList *list, Expression *expression);
+
+
+StatementList *mgc_create_statement_list(Statement *statement);
+StatementList *mgc_chain_statement_list(StatementList *statement_list, Statement *statement);
+
+
 Expression *mgc_alloc_expression(ExpressionKind kind);
 void mgc_compile_error(int line_number,...);
 
@@ -617,6 +886,10 @@ void mgc_rest_string_literal_buffer(void);
 DVM_Char *mgc_close_string_literal(void);
 int mgc_close_character_literal(void);
 char *mgc_create_identifier(char *str);
+
+
+/* util.c */
+MGC_Compiler *mgc_get_current_compiler(void);
 
 
 #endif /* mango_h */

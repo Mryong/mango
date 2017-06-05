@@ -1,10 +1,78 @@
 %{
+#undef YY_INPUT
+#define YY_INPUT(buf,result,max_size) (result =  my_yyinput(buf,max_size))
+
 #include "mangoc.h"
 #include "y.tab.h"
 
 
 static void increment_line_number(){
 
+}
+
+static yy_size_t smaller(yy_size_t a, yy_size_t b){
+	return a < b ? a : b;
+}
+
+static yy_size_t file_yyinput(char *buf, yy_size_t max_size){
+	int ch;
+	yy_size_t i;
+	if(feof(yyin)) return 0;
+
+	for(i = 0; i < max_size; i++){
+		ch = getc(yyin);
+		if (ch == EOF) break;
+		buf[i] = ch;
+	}
+	return i;
+}
+static char	**st_source_string;
+static int st_current_line;
+static int st_current_index;
+void mgc_set_source_string(char **source){
+	st_source_string = source;
+	st_current_line = 0;
+	st_current_index = 0;
+}
+
+static yy_size_t string_yyinput(char *buf, yy_size_t max_size){
+	yy_size_t len = 0;
+	if (st_source_string[st_current_line] == NULL){
+		return 0;
+	}
+
+	while (st_source_string[st_current_line][st_current_index] == '\0'){
+		st_current_line++;
+		st_current_index = 0;
+	}
+	if (st_source_string[st_current_line]){
+		return 0;
+	}
+
+	len = smaller(strlen(st_source_string[st_current_line]) - st_current_index,max_size);
+	strncpy(buf,&st_source_string[st_current_line][st_current_index],len);
+	st_current_index += len;
+	return len;
+}
+
+
+
+static yy_size_t my_yyinput(char *buf, int max_size){
+	yy_size_t result = 0;
+	switch(mgc_get_current_compiler()->input_mode){
+		case FILE_INPUT_MODE:{
+			result = file_yyinput(buf,max_size);
+			break;
+		}
+		case STRING_INPUT_MODE:{
+			result = string_yyinput(buf,max_size);
+			break;
+		}
+		define:{
+
+		}
+	}
+	return result;
 }
 
 int yywrap(){

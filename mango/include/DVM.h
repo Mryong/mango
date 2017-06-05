@@ -9,6 +9,7 @@
 #ifndef DVM_h
 #define DVM_h
 
+
 typedef enum {
 	DVM_FALSE = 0,
 	DVM_TRUE = 1
