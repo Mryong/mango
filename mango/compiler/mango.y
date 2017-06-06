@@ -4,6 +4,8 @@
 #define YYDEBUG 1
 #define YYERROR_VERBOSE
 
+
+
 %}
 
 %union{
@@ -41,11 +43,11 @@
 
 unit: IF LP expression RP block {
 			printf("if valid\n");
-		}
-		;
+	}
+	;
 
 expression: INT_LITERAL | DOUBLE_LITERAL | STRING_LITERAL | IDENTIFER
-		;
+	;
 
 block: LC RC
         ;

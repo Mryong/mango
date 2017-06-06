@@ -214,12 +214,12 @@ typedef struct ArgumentList_tag {
 	struct ArgumentList_tag	*next;
 }ArgumentList;
 
-typedef struct ParaemeterList_tag{
+typedef struct ParameterList_tag{
 	TypeSpecifier	*type;
 	char	*name;
 	int	line_number;
 	struct PackageName_tag	*next;
-}ParaemeterList;
+}ParameterList;
 
 typedef enum {
 	FUNCTION_DERIVE,
@@ -239,7 +239,7 @@ typedef struct ExceptionList_tag{
 }ExceptionList;
 
 typedef struct {
-	ParaemeterList	*parameter_list;
+	ParameterList	*parameter_list;
 	ExceptionList	*throws;
 }FunctionDerive;
 
@@ -664,7 +664,7 @@ struct	FunctionDefinition_tag {
 	TypeSpecifier		*type;
 	PackageName			*package_name;
 	char				*name;
-	ParaemeterList		*paraemeter_list;
+	ParameterList	*parameter_list;
 	Block				*block;
 	int					*local_variable_count;
 	Declaration			**local_variable;
@@ -782,7 +782,7 @@ typedef struct {
 struct DelegateDefinition_tag {
 	char			*name;
 	TypeSpecifier	*type;
-	ParaemeterList	*paraemeter_list;
+	ParameterList	*parameter_list;
 	ExceptionList	*throws;
 	DelegateDefinition	*next;
 };
@@ -855,14 +855,14 @@ RenameList *mgc_chain_rename_list(RenameList *list, RenameList add);
 void set_require_and_rename_list(RequireList *require_list, RenameList *rename_list);
 
 FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *identifier,
-												   ParaemeterList *paraemeter_list, ExceptionList *exception_list,
+												   ParameterList *parameter_list, ExceptionList *exception_list,
 												   Block *block);
 void mgc_function_define(TypeSpecifier *type, char *identifier,
-						 ParaemeterList *paraemeter_list, ExceptionList *exception_list,
+						 ParameterList *parameter_list, ExceptionList *exception_list,
 						 Block *block);
 
-ParaemeterList *mgc_create_paraemeter(TypeSpecifier *type, char *identifier);
-ParaemeterList *mgc_chain_paraemeter(ParaemeterList *list, TypeSpecifier *type, char *identifier);
+ParameterList *mgc_create_parameter(TypeSpecifier *type, char *identifier);
+ParameterList *mgc_chain_parameter(ParameterList *list, TypeSpecifier *type, char *identifier);
 
 ArgumentList *mgc_create_argument(Expression *expression);
 ArgumentList *mgc_chain_argument(ArgumentList *list,Expression *expression);
@@ -985,6 +985,46 @@ void mgc_class_define(MemberDeclaration *member_list);
 ExtendsList *mgc_create_extends_list(char *identifier);
 ExtendsList *mgc_chain_extends_list(ExtendsList *list, char *add);
 
+ClassOrMemberModifierList mgc_create_class_or_member_modifier_list(ClassOrMemberModifierKind kind);
+ClassOrMemberModifierList mgc_chain_class_or_member_modifier_list(ClassOrMemberModifierList list,
+																  ClassOrMemberModifierList add);
+
+MemberDeclaration *mgc_chain_member_declaration_list(MemberDeclaration *list,
+													 MemberDeclaration *add);
+
+MemberDeclaration *mgc_create_method_member(ClassOrMemberModifierList *modifier,
+											FunctionDefinition *function_definition,
+											DVM_Boolean is_final);
+FunctionDefinition *mgc_method_function_definition(TypeSpecifier *type,
+												   char *identifier,
+												   ParameterList *parameter,
+												   ExceptionList *thorws,
+												   Block *block);
+FunctionDefinition *mgc_constructor_function_definition(char *identifier,
+														ParameterList *parameter,
+														ExceptionList *throws,
+														Block *block);
+
+MemberDeclaration *mgc_create_field_member(ClassOrMemberModifierList *modifier,
+										   DVM_Boolean *is_final,
+										   TypeSpecifier *type,
+										   char *name,
+										   Expression *initializer);
+
+ExceptionList *mgc_create_thorws(char *identifer);
+ExceptionList *mgc_chain_exception_list(ExceptionList *list, char *identifier);
+
+void mgc_create_delegate_definition(TypeSpecifier *type, char identifier,
+									ParameterList *parameter, ExceptionList *thorws);
+
+
+void mgc_create_enum_definition(char *identifier, Enumerator *enumerator);
+Enumerator *mgc_create_enumerator(char *identifier);
+Enumerator *mgc_chain_enumerator(Enumerator *enumerator, char *identifier);
+
+void *mgc_create_cons_definition(TypeSpecifier *type,
+								 char *identifier,
+								 Expression *initializer);
 
 
 
