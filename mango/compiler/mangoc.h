@@ -428,15 +428,15 @@ typedef struct {
 }NewExpression;
 
 
-typedef struct ArrayDemension_tag{
+typedef struct ArrayDimension_tag{
 	Expression	*expression;
 	struct	ArgumentList_tag	*next;
-}ArrayDemension;
+}ArrayDimension;
 
 
 typedef struct {
 	TypeSpecifier	*type;
-	ArrayDemension	*demension;
+	ArrayDimension	*dimension;
 }ArrayCreation;
 
 typedef struct Enumerator_tag {
@@ -875,7 +875,120 @@ StatementList *mgc_create_statement_list(Statement *statement);
 StatementList *mgc_chain_statement_list(StatementList *statement_list, Statement *statement);
 
 
+
+TypeSpecifier *mgc_create_type_specifier(DVM_BaseType base_type);
+TypeSpecifier *mgc_create_identifier_type_specifier(char *identifier);
+TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base);
+
+
 Expression *mgc_alloc_expression(ExpressionKind kind);
+Expression *mgc_create_comma_expression(Expression *left, Expression *right);
+Expression *mgc_create_assign_expression(Expression *left, AssignmentOperator operator, Expression operand);
+Expression *mgc_create_binary_expression(ExpressionKind operator, Expression *left, Expression *right);
+Expression *mgc_create_minus_expression(Expression *operand);
+Expression *mgc_create_logic_not_expression(Expression *operand);
+Expression *mgc_create_bit_not_expression(Expression *operand);
+Expression *mgc_create_index_expression(Expression *array,Expression *index);
+Expression *mgc_create_incdec_expression(Expression *operand,ExpressionKind inc_or_dec);
+Expression *mgc_create_instanceof_expression(Expression *operand, TypeSpecifier *type);
+Expression *mgc_create_identifier_expression(char *identifier);
+Expression *mgc_create_function_call_expression(Expression *function, ArgumentList *argument);
+Expression *mgc_create_down_cast_expression(Expression *operand,TypeSpecifier *type);
+Expression *mgc_create_member_expression(Expression *expression, char *member_name);
+Expression *mgc_create_boolean_expression(DVM_Boolean value);
+Expression *mgc_create_null_expression(void);
+Expression *mgc_create_new_expression(char *class_name, char *method_name, ArgumentList *argument);
+Expression *mgc_create_array_literal_expression(ExpressionList *list);
+Expression *mgc_create_base_array_creation(DVM_BaseType base_type,
+										   ArrayDimension *dim_expr_list,
+										   ArrayDimension *dim_list);
+Expression *mgc_create_class_array_creation(TypeSpecifier *type,
+											ArrayDimension *dim_expr_list,
+											ArrayDimension *dim_list);
+Expression *mgc_create_this_expression(void);
+Expression *mgc_create_super_expression(void);
+
+ArrayDimension *mgc_create_array_dimension(Expression *expression);
+ArrayDimension *mgc_chain_array_dimension(ArrayDimension *list,
+										  ArrayDimension *dim);
+
+Statement *mgc_alloc_statement(StatementType type);
+Statement *mgc_create_if_statement(Expression *condition,
+								   Block *then_block, Elsif *elsif_list,
+								   Block *else_block);
+
+Elsif *mgc_create_elsif_statement(Expression *expr, Block *block);
+Elsif *mgc_chain_elsif_statement(Elsif *list, Elsif *add);
+
+Statement *mgc_create_switch_statement(Expression *expr,
+									   CaseList *case_list,
+									   Block *default_block);
+
+CaseList *mgc_create_one_case(ExpressionList *expression_list, Block *block);
+CaseList *mgc_chain_one_case(CaseList *list, CaseList *add);
+
+Statement *mgc_create_while_statement(char *label,
+									  Expression *condition,
+									  Block *block);
+
+Statement *mgc_create_foreach_statement(char *label,
+										char *variable,
+										Expression *collection,
+										Block *block);
+
+Statement *mgc_create_for_statement(char *label,
+									Expression *init,
+									Expression *condition,
+									Expression *post,
+									Block *block);
+
+Statement *mgc_create_do_while_statement(char *label,
+										 Block *block,
+										 Expression *condition);
+
+
+Block *mgc_alloc_block(void);
+Block *mgc_open_block(void);
+Block *mgc_close_block(Block *block, StatementList *statement_list);
+
+Statement *mgc_create_expression_statement(Expression *expression);
+Statement *mgc_create_return_statement(Expression *expression);
+Statement *mgc_create_break_statement(char *label);
+Statement *mgc_create_continue_statement(char *label);
+Statement *mgc_create_try_statement(Block *try_block,
+									CatchClause *catch_clause,
+									Block *finally_block);
+
+CatchClause *mgc_create_catch_clause(TypeSpecifier *type,
+									 char *variable_name,
+									 Block *block);
+CatchClause *mgc_start_catch_clause(void);
+CatchClause *mgc_end_catch_clause(CatchClause *catch_clause,
+								  TypeSpecifier *type,
+								  char *variable_name,
+								  Block *block);
+CatchClause *mgc_chain_catch_clause(CatchClause *list, CatchClause *add);
+
+
+Statement *mgc_create_throw_statement(Expression *expression);
+Statement *mgc_create_declaration_statement(DVM_Boolean is_final,
+											TypeSpecifier *type,
+											char *identifier,
+											Expression *initializer);
+
+void mgc_start_class_definition(ClassOrMemberModifierList *modifier,
+								DVM_ClassOrInterface class_or_interface,
+								char *identifier,
+								ExpressionList *extends);
+
+void mgc_class_define(MemberDeclaration *member_list);
+ExtendsList *mgc_create_extends_list(char *identifier);
+ExtendsList *mgc_chain_extends_list(ExtendsList *list, char *add);
+
+
+
+
+
 void mgc_compile_error(int line_number,...);
 
 
