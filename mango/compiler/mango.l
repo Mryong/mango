@@ -220,7 +220,7 @@ DVM_Boolean st_character_literal_state;
 <INITIAL>"/*" {	BEGIN C_COMMENT; }
 <INITIAL>"//" { BEGIN CC_COMMENT; }
 <INITIAL>.	{
-	mgc_compile_error(0);
+	mgc_compile_error(0,PARSE_ERR);
 }
 
 
@@ -228,7 +228,7 @@ DVM_Boolean st_character_literal_state;
 <C_COMMENT>. ;
 <C_COMMENT>"*/"	{ BEGIN INITIAL; }
 <C_COMMENT><<EOF>>	{
-	mgc_compile_error(0);
+	mgc_compile_error(0,PARSE_ERR);
 }
 
 <CC_COMMENT>.	;
@@ -275,7 +275,7 @@ DVM_Boolean st_character_literal_state;
   mgc_add_string_literal(yytext[1]);
 }
 <STRING_LITERAL_STATE><<EOF>>	{
-	mgc_compile_error(0);
+	mgc_compile_error(0,PARSE_ERRs);
 }
 
 <STRING_LITERAL_STATE>.	{

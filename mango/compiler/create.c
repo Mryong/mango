@@ -25,7 +25,7 @@ int yyerror(char const *str){
 	return 0;
 }
 
-void mgc_compile_error(int line_number,...){
+void mgc_compile_error(int line_number,CompileError err,...){
 	printf("%s\n","mgc_compile_error");
 }
 

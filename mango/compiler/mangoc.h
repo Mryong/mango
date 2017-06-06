@@ -1029,7 +1029,7 @@ void *mgc_create_cons_definition(TypeSpecifier *type,
 
 
 
-void mgc_compile_error(int line_number,...);
+void mgc_compile_error(int line_number,CompileError err,...);
 
 
 /* string.c */
