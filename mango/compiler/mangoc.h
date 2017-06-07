@@ -430,7 +430,7 @@ typedef struct {
 
 typedef struct ArrayDimension_tag{
 	Expression	*expression;
-	struct	ArgumentList_tag	*next;
+	struct	ArrayDimension_tag	*next;
 }ArrayDimension;
 
 
@@ -448,7 +448,7 @@ typedef struct Enumerator_tag {
 
 typedef struct {
 	EnumDefinition	*enum_definition;
-	Enumerator		*enumrator;
+	Enumerator		*enumerator;
 }EnumeratorExpression;
 
 
@@ -852,7 +852,7 @@ RequireList *mgc_chain_require_list(RequireList *list,RequireList *add);
 RenameList *mgc_create_rename_list(PackageName package_name, char *identifer);
 RenameList *mgc_chain_rename_list(RenameList *list, RenameList add);
 
-void set_require_and_rename_list(RequireList *require_list, RenameList *rename_list);
+void mgc_set_require_and_rename_list(RequireList *require_list, RenameList *rename_list);
 
 FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *identifier,
 												   ParameterList *parameter_list, ExceptionList *exception_list,

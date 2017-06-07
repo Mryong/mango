@@ -164,7 +164,7 @@ DVM_Boolean st_character_literal_state;
 <INITIAL>"++"			{ return INCREMENT; }
 <INITIAL>"--"			{ return DECREMENT; }
 <INITIAL>"!"			{ return EXCLAMATION; }
-<INITIAL>"."			{ return DOT_T; }
+<INITIAL>"."			{ return DOT; }
 <INITIAL>"::"			{ return DOWN_CAST_BEGIN; }
 <INITIAL>":>"			{ return DOWN_CAST_END; }
 
@@ -275,7 +275,7 @@ DVM_Boolean st_character_literal_state;
   mgc_add_string_literal(yytext[1]);
 }
 <STRING_LITERAL_STATE><<EOF>>	{
-	mgc_compile_error(0,PARSE_ERRs);
+	mgc_compile_error(0,PARSE_ERR);
 }
 
 <STRING_LITERAL_STATE>.	{
