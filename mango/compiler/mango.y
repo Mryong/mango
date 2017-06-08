@@ -917,7 +917,7 @@
 // 									   Block *default_block);
 
 // CaseList *mgc_create_one_case(ExpressionList *expression_list, Block *block);
-// CaseList *mgc_chain_one_case(CaseList *list, CaseList *add);
+// CaseList *mgc_chain_case(CaseList *list, CaseList *add);
 
 // Statement *mgc_create_while_statement(char *label,
 // 									  Expression *condition,
@@ -1106,7 +1106,7 @@
 %type <rename_list> rename_list rename_declaration
 %type <parameter_list> parameter_list
 %type <argument_list> argument_list
-%type <expression> expression exception_opt
+%type <expression> expression expression_opt
         assignment_expression logical_and_expression logical_or_expression
         equality_expression relational_expression
         additive_expression multiplication_expression
@@ -1120,7 +1120,7 @@
         return_statement break_statement continue_statement try_statement
         throw_statement  declaration_statement
 %type <statement_list> statement_list
-%type <block> block block_opt
+%type <block> block default_opt
 %type <elsif> elsif elsif_list
 %type <case_list> case_list one_case
 %type <catch_clause> catch_clause catch_list
@@ -1473,11 +1473,262 @@ postfix_expression: primary_expression
 
 primary_expression: primary_no_new_array
                 | array_creation
-                | IDENTIFER
+                | IDEN.TIFER
                 {
                         $$ = mgc_create_identifier_expression($1);
                 }
                 ;
+
+primary_no_new_array: primary_no_new_array LB expression RB
+                {
+                        $$ = mgc_create_index_expression($1,$3);
+                }
+                | IDENTIFER LB exception RB
+                {
+                        Expression *identifer = mgc_create_identifier_expression($1);
+                        $$ = mgc_create_index_expression(identifer, $3);
+                }
+                | primary_expression DOT IDENTIFER
+                {
+                        $$ = mgc_create_member_expression($1, $3);
+                }
+                | primary_expression LP argument_list RP
+                {
+                        $$ = mgc_create_function_call_expression($1,$3);
+                }
+                | primary_expression LP RP
+                {
+                        $$ = mgc_create_function_call_expression($1,NULL);  
+                }
+                | LP exception RP
+                {
+                        $$ = $2;
+                }
+                | primary_expression DOWN_CAST_BEGIN type_specifier DOWN_CAST_END
+                {
+                        $$ = mgc_create_down_cast_expression($1,$3);
+                }
+                | INT_LITERAL
+                | DOUBLE_LITERAL
+                | STRING_LITERAL
+                | REGEXP_LITERAL
+                | TRUE_T
+                {
+                        $$ = mgc_create_boolean_expression($1);
+                }
+                | FALSE_T{
+                        $$ = mgc_create_boolean_expression($1);
+                }
+                | NULL_T
+                {
+                        $$ = mgc_create_null_expression();
+                }
+                | array_literal
+                | THIS_T {
+                        $$ = mgc_create_this_expression();
+                }
+                | SUPER_T
+                {
+                        $$ = mgc_create_super_expression();
+                }
+                | NEW IDENTIFER LP RP
+                {
+                        $$ = mgc_create_new_expression($2, NULL, NULL);
+                }
+                | NEW IDENTIFER LP argument_list RP
+                {
+                        $$  = mgc_create_new_expression($2, NULL, $4);
+                }
+                | NEW IDENTIFER DOT IDENTIFER LP  RP
+                {
+                        $$  = mgc_create_new_expression($2, $4, NULL);
+                }
+                | NEW IDENTIFER DOT IDENTIFER LP argument_list RP
+                {
+                         $$  = mgc_create_new_expression($2, $4, $6);
+                }
+                ;
+
+array_literal: LC exception_list RC
+                {
+                        $$ = mgc_create_array_literal_expression($2);
+                }
+                | LC exception_list COMMA RC
+                {
+                        $$ = mgc_create_array_literal_expression($2);
+                }
+                ;
+
+array_creation: NEW base_type_specifier dimension_expression_list
+                {
+                        $$ = mgc_create_base_array_creation($2, $3, NULL);
+                }
+                | NEW base_type_specifier dimension_expression_list dimension_list
+                {
+                        $$ = mgc_create_base_array_creation($2, $3, $4);
+                }
+                | NEW identifier_type_specifier dimension_expression_list
+                {
+                        $$ = mgc_create_class_array_creation($2, $3, NULL);
+                }
+                | NEW identifier_type_specifier dimension_expression_list  dimension_list
+                {
+                        $$ = mgc_create_class_array_creation($2, $3, $4);
+                }
+                ;
+
+dimension_expression_list: dimension_expression
+                | dimension_expression_list dimension_list
+                {
+                        $$ = mgc_chain_array_dimension($1,$2);
+                }
+                ;
+
+dimension_expression: LB exception RB
+                {
+                        $$ = mgc_create_array_dimension($2);
+                }
+                ;
+
+dimension_list: LB RB
+                {
+                        $$ = mgc_create_array_dimension(NULL);
+                }
+                | dimension_list LB RB
+                {
+                        $$ = mgc_chain_array_dimension($1,mgc_create_array_dimension(NULL));
+                }
+                ;
+
+expression_list: /* empty */
+                {
+                        $$ = NULL;
+                }
+                | assignment_expression
+                {
+                        $$ = mgc_create_expression_list($1);
+                }
+                | expression_list assignment_expression
+                {
+                        $$ = mgc_chain_expression_list($1,$2);
+                }
+                ;
+
+statement: expression SEMICOLON
+                {
+                        $$ = mgc_create_expression_statement()$1;
+                }
+                | if_statement
+                | swithc_statement
+                | while_statement
+                | for_statement
+                | do_while_statement
+                | foreach_statement
+                | return_statement
+                | break_statement
+                | continue_statement
+                | try_statement
+                | throw_statement
+                | declaration_statement
+                ;
+
+if_statement: IF LP exception RP block
+                {
+                        $$ = mgc_create_if_statement($3, $5, NULL, NULL);
+                }
+                | IF LP exception RP block ELSE block
+                {
+                        $$ = mgc_create_if_statement($3, $5, $7);
+                }
+                | IF LP exception RP block elsif_list
+                {
+                        $$ = mgc_create_if_statement($3, $5, $6);
+                }
+                | IF LP exception RP block elsif_list ELSE block
+                {
+                        $$ = mgc_create_if_statement($3, $5, $6, $8);
+                }
+                ;
+
+elsif_list: elsif
+                | elsif_list elsif
+                {
+                        $$ = mgc_chain_elsif_statement($1,$2);
+                }
+                ;
+
+elsif: ELSIF LP exception RP block
+                {
+                        $$ = mgc_create_elsif_statement($3, $5);
+                }
+
+label_opt:  /* empty */
+                {
+                        $$ = NULL;
+                }
+                | IDENTIFER COLON
+                {
+                        $$ = $1;
+                }
+                ;
+
+swithc_statement: SWITHC LP exception RP case_list default_opt
+                {
+                        $$ = mgc_create_switch_statement($3, $5, $6);
+                }
+                ;
+
+
+case_list: one_case
+                | case_list one_case
+                {
+                        $$ = mgc_chain_case($1,$2);
+                }
+                ;
+
+one_case: CASE case_expression_list block
+                {
+                        $$ = mgc_create_one_case($2,$3);
+                }
+                ;
+
+
+default_opt: /* empty */
+                {
+                        $$ = NULL;
+                }
+                | DEFAULT_T block
+                {
+                        $$ = $2;
+                }
+                ;
+
+case_expression_list: assignment_expression 
+                {
+                        $$ = mgc_create_expression_list($1);
+                }
+                | case_expression_list COMMA assignment_expression
+                {
+                        $$ = mgc_chain_expression_list($1,$3);
+                }
+                ;
+
+                
+
+while_statement: label_opt WHILE LP exception RP block
+                {
+                        $$ = mgc_create_while_statement($1, $4, $6);
+                }
+                ;
+
+
+for_statement: label FOR LP expression_opt SEMICOLON expression_opt SEMICOLON expression_opt block
+                {
+                        $$ = mgc_create_for_statement($1, $4, $6, $8, $9);
+                }
+                ;
+
+
 
 
 

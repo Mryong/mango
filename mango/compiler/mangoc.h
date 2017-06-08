@@ -925,7 +925,7 @@ Statement *mgc_create_switch_statement(Expression *expr,
 									   Block *default_block);
 
 CaseList *mgc_create_one_case(ExpressionList *expression_list, Block *block);
-CaseList *mgc_chain_one_case(CaseList *list, CaseList *add);
+CaseList *mgc_chain_case(CaseList *list, CaseList *add);
 
 Statement *mgc_create_while_statement(char *label,
 									  Expression *condition,
