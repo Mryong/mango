@@ -734,7 +734,7 @@
 // 	DVM_ClassOrInterface class_or_interface;
 // 	PackageName	*package_name;
 // 	char		*name;
-// 	ExceptionList	*extents;
+// 	ExceptionList	*extends;
 // 	ClassDefinition	*super_class;
 // 	ExceptionList	*interface_list;
 // 	MemberDeclaration	*member;
@@ -977,8 +977,8 @@
 // ExtendsList *mgc_create_extends_list(char *identifier);
 // ExtendsList *mgc_chain_extends_list(ExtendsList *list, char *add);
 
-// ClassOrMemberModifierList mgc_create_class_or_member_modifier_list(ClassOrMemberModifierKind kind);
-// ClassOrMemberModifierList mgc_chain_class_or_member_modifier_list(ClassOrMemberModifierList list,
+// ClassOrMemberModifierList mgc_create_class_or_member_modifier(ClassOrMemberModifierKind kind);
+// ClassOrMemberModifierList mgc_chain_class_or_member_modifier(ClassOrMemberModifierList list,
 // 																  ClassOrMemberModifierList add);
 
 // MemberDeclaration *mgc_chain_member_declaration_list(MemberDeclaration *list,
@@ -1134,7 +1134,7 @@
 %type <extends_list> extends_list extends
 %type <member_declaration> member_declaration member_declaration_list
         method_member field_member
-%type <function_definition> method_function_definition constructor_function_definition 
+%type <function_definition> method_function_definition constructor_definition 
 %type <exception_list> exception_list throws_clause
 %type <enumerator> enumerator_list
 
@@ -1722,11 +1722,364 @@ while_statement: label_opt WHILE LP exception RP block
                 ;
 
 
-for_statement: label FOR LP expression_opt SEMICOLON expression_opt SEMICOLON expression_opt block
+for_statement: label_opt FOR LP expression_opt SEMICOLON expression_opt SEMICOLON expression_opt block
                 {
                         $$ = mgc_create_for_statement($1, $4, $6, $8, $9);
                 }
                 ;
+
+
+
+do_while_statement: label_opt DO_T block WHILE  LP exception RP block
+                {
+                        $$ = mgc_create_do_while_statement($1, $3, $6);
+                }
+                ;
+
+
+
+foreach_statement: label_opt FOREACH LP IDENTIFER  COLON expression RP block
+                {
+                        $$ = mgc_create_foreach_statement($1,$4,$6,$8);         
+                }
+                ;
+
+expression_opt: /* empty */
+                {
+                        $$ = NULL;
+                }
+                | exception
+                ;
+
+break_statement: BREAK IDENTIFER SEMICOLON
+                {
+                        $$ = mgc_create_break_statement($2);
+                }
+                ;
+
+continue_statement: CONTINUE IDENTIFER SEMICOLON
+                {
+                        $$ = mgc_create_continue_statement($2);
+                }
+                ;
+
+try_statement: TRY block case_list FINALLY block
+                {
+                        $$ = mgc_create_try_statement($2, $3, $5);
+                }
+                | TRY block case_list
+                {
+                        $$ = mgc_create_try_statement($2, $3, NULL);
+                }
+                ;
+
+catch_list: catch_clause
+                | catch_list catch_clause
+                {
+                        $$ = mgc_chain_catch_clause($1, $2);    
+                }
+                ;
+
+catch_clause: CATCH
+                {
+                        $<catch_clause>$ = mgc_start_catch_clause();        
+                }
+                 LP type_specifier IDENTIFER  RP block
+                {
+                        $$ = mgc_end_catch_clause($<catch_clause>2, $4, $5, $7);
+                }
+                ;
+
+
+throw_statement: THROW exception SEMICOLON
+                {
+                        $$ = mgc_create_throw_statement($2);
+                }
+                | THROW SEMICOLON
+                {
+                        $$ = mgc_create_argument(NULL);
+                }
+                ;
+
+declaration_statement: type_specifier IDENTIFER SEMICOLON
+                {
+                        $$ = mgc_create_declaration_statement(DVM_FALSE, $1, $2, NULL);
+                }
+                | type_specifier IDENTIFER ASSIGN_T exception SEMICOLON
+                {
+                        $$ = mgc_create_declaration_statement(DVM_FALSE, $1, $2, $4);
+                }
+                | FINAL type_specifier IDENTIFER SEMICOLON
+                {
+                }
+                | FINAL type_specifier IDENTIFER ASSIGN_T exception SEMICOLON
+                {
+                        $$ = mgc_create_declaration_statement(DVM_TRUE, $2, $3, $5);
+                }
+                ;
+
+block: LC
+                {
+                        $<block>$ = mgc_open_block();
+                }
+                statement_list RC
+                {
+                        $$ = mgc_close_block($<block>2,$3);
+                }
+                | LC RC
+                {
+                        Block *block = mgc_open_block();
+                        $$ = mgc_close_block(block,NULL);
+                }
+                ;
+
+class_definition: class_or_interface IDENTIFER extends LC
+                {
+                        mgc_start_class_definition(NULL,$1,$2,$3);
+                }
+                member_declaration_list RC
+                {
+                        mgc_class_define($1);
+                }
+                | class_or_member_modifier_list class_or_interface IDENTIFER extends LC
+                {
+                        mgc_start_class_definition($1,$1,$2,$3);    
+                }
+                member_declaration_list RC
+                {
+                        mgc_class_define($1);
+                }
+                | class_or_interface IDENTIFER extends LC
+                {
+                        mgc_start_class_definition(NULL,$1,$2,$3);
+                }
+                RC
+                {
+                        mgc_class_define(NULL);
+                }
+                | class_or_member_modifier_list class_or_interface IDENTIFER extends LC
+                {
+                        mgc_start_class_definition($1,$1,$2,$3);    
+                }
+                RC
+                {
+                        mgc_class_define(NULL);
+                }
+                ;
+
+
+class_or_member_modifier_list: class_or_member_modifier
+                class_or_member_modifier_list class_or_interface
+                {
+                        $$ = mgc_chain_class_or_member_modifier($1,$2);
+                }
+                ;
+
+class_or_member_modifier: access_modifier
+                 | VIRTUAL_T
+                 {
+                        $$ = mgc_create_class_or_member_modifier(VITRAL_MODIFIER);
+                 }
+                 | OVERRIED_T
+                 {
+                        $$ = mgc_create_class_or_member_modifier(OVERRIDE_MODIFIER);
+                 }
+                 | ABSTRACT_T
+                 {
+                        $$ = mgc_create_class_or_member_modifier(ABSTRACT_MODIFIER);
+                 }
+                 ;
+
+
+class_or_interface: CLASS_T
+                {
+                        $$ = DVM_CLASS_DEFINITION,
+	
+                }
+                | INTERFACE_T
+                {
+                        $$ = DVM_INTERFACE_DEFINITION;
+                }
+                ;
+
+extends: /* empty */
+                {
+                        $$ = NULL;    
+                }
+                | COLON extends_list
+                {
+                        $$ = $2;  
+                }
+                ;
+
+
+extends_list: IDENTIFER
+                {
+                        $$ = mgc_create_extends_list($1);
+                }
+                extends_list IDENTIFER
+                {
+                        $$ = mgc_chain_extends_list($1,$2);
+                }
+                ;
+
+member_declaration_list: member_declaration
+                member_declaration_list member_declaration
+                {
+                        $$ = mgc_chain_member_declaration_list($1,$2);
+                }
+                ;
+
+
+member_declaration: method_member
+                | field_member
+                ;
+
+method_member: method_function_definition
+                {
+                        $$ = mgc_create_method_member(NULL,$1,DVM_FALSE);
+                }
+                | class_or_member_modifier_list method_function_definition
+                {
+                        $$ = mgc_create_method_member(&$1,$2,DVM_FALSE);
+                }
+                | constant_definition
+                {
+                        $$ = mgc_create_method_member(NULL,$1,DVM_TRUE);
+                }
+                | class_or_member_modifier constant_definition
+                {
+                        $$ = mgc_create_method_member(&$1,$2,DVM_TRUE);
+                }
+                ;
+
+method_function_definition: type_specifier IDENTIFER LP parameter_list RP throws_clause block
+                {
+                        $$ = mgc_method_function_definition($1,$2,$4,$6,$7);
+                }
+                | type_specifier IDENTIFER LP RP throws_clause block
+                {
+                        $$ = mgc_method_function_definition($1,$2, NULL,$5,$6);
+                }
+                } type_specifier IDENTIFER LP parameter_list RP throws_clause SEMICOLON
+                {
+                        $$ = mgc_method_function_definition($1,$2,$4,$6,NULL);
+                }
+                | type_specifier IDENTIFER LP RP throws_clause SEMICOLON
+                {
+                        $$ = mgc_method_function_definition($1,$2, NULL,$5,NULL);
+                }
+                ;
+
+throws_clause: /* empty */
+                {
+                        $$ = NULL;
+                }
+                | THROWS exception_list
+                {
+                        $$ = $2;
+                }
+                ;
+
+exception_list: IDENTIFER 
+                {
+                        $$ = mgc_create_thorws($1);
+                }
+                | exception_list COMMA IDENTIFER
+                {
+                        $$ = mgc_chain_exception_list($1,$3);
+                }
+                ;
+
+
+constructor_definition: CONSTRUCTOR IDENTIFER LP parameter_list RP throws_clause block
+                {
+                        $$ = mgc_constructor_function_definition($2, $4, $6, $7);
+                }
+                |  CONSTRUCTOR IDENTIFER LP  RP throws_clause block
+                {
+                        $$ = mgc_constructor_function_definition($2, NULL, $5, $6);
+                }
+                | CONSTRUCTOR IDENTIFER LP parameter_list RP throws_clause SEMICOLON
+                {
+                        $$ = mgc_constructor_function_definition($2, $4, $6, NULL);
+                }
+                | CONSTRUCTOR IDENTIFER LP  RP throws_clause SEMICOLON
+                {
+                        $$ = mgc_constructor_function_definition($2, NULL, $5, NULL);
+                }
+                ;
+
+
+access_modifier: PUBLIC_T
+                {
+                        $$ = mgc_create_class_or_member_modifier(PUBLIC_MODIFIER);
+                }
+                | PRIVATE_T
+                {
+                        $$ = mgc_create_class_or_member_modifier(PRIVATE_MODIFIER);
+                }
+                ;
+
+initializer_opt: /* empty */
+                {
+                        $$ = NULL;
+                }
+                | ASSIGN_T exception
+                {
+                        $$ = $2;
+                }
+                ;
+
+
+field_member: type_specifier IDENTIFER initializer_opt SEMICOLON
+                {
+                        $$ = mgc_create_field_member(NULL,DVM_FALSE,$1,$2,$3);
+                }
+                | class_or_member_modifier typedef IDENTIFER initializer_opt SEMICOLON
+                {
+                        $$ = mgc_create_field_member(&$1,DVM_FALSE,$2,$3,$4);
+                }
+                | FINAL type_specifier IDENTIFER  initializer_opt SEMICOLON
+                {
+                      $$ = mgc_create_field_member(NULL,DVM_TRUE,$2,$3,$4);  
+                }
+                | class_or_member_modifier FINAL typedef IDENTIFER initializer_opt SEMICOLON
+                {
+                        $$ = mgc_create_field_member(&$1,DVM_TRUE,$3,$4,$5);
+                }
+                ;
+delegate_definition: DELEGATE type_specifier IDENTIFER LP parameter_list RP throws_clause SEMICOLON
+                {
+                        mgc_create_delegate_definition($2,$3,$4,$6);
+                }
+                | DELEGATE type_specifier IDENTIFER LP RP throws_clause SEMICOLON
+                {
+                        mgc_create_delegate_definition($2,$3,NULL,$6);
+                }
+                ;
+
+
+enum_definition: ENUM IDENTIFER LC enumerator_list RC
+                {
+                        mgc_create_enum_definition($2,$4);
+                }
+                | ENUM IDENTIFER LC enumerator_list COMMA RC
+                {
+                        mgc_create_enum_definition($2,$4);
+                }
+                ;
+
+                
+
+
+
+
+
+
+
+
+
 
 
 

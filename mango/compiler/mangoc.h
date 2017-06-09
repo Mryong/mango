@@ -742,7 +742,7 @@ struct ClassDefinition_tag {
 	DVM_ClassOrInterface class_or_interface;
 	PackageName	*package_name;
 	char		*name;
-	ExceptionList	*extents;
+	ExceptionList	*extends;
 	ClassDefinition	*super_class;
 	ExceptionList	*interface_list;
 	MemberDeclaration	*member;
@@ -985,8 +985,8 @@ void mgc_class_define(MemberDeclaration *member_list);
 ExtendsList *mgc_create_extends_list(char *identifier);
 ExtendsList *mgc_chain_extends_list(ExtendsList *list, char *add);
 
-ClassOrMemberModifierList mgc_create_class_or_member_modifier_list(ClassOrMemberModifierKind kind);
-ClassOrMemberModifierList mgc_chain_class_or_member_modifier_list(ClassOrMemberModifierList list,
+ClassOrMemberModifierList mgc_create_class_or_member_modifier(ClassOrMemberModifierKind kind);
+ClassOrMemberModifierList mgc_chain_class_or_member_modifier(ClassOrMemberModifierList list,
 																  ClassOrMemberModifierList add);
 
 MemberDeclaration *mgc_chain_member_declaration_list(MemberDeclaration *list,

@@ -81,7 +81,7 @@ int yywrap(){
 DVM_Boolean st_character_literal_state;
 %}
 
-%start C_COMMENT CC_COMMENT STRING_LITERAL_STATE SHIFT_JIS_2ND_CHAR
+%start C_COMMENT CC_COMMENT STRING_LITERAL_STATE
 
 %%
 <INITIAL>"if"			{ return IF; }
