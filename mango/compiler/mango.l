@@ -170,8 +170,8 @@ DVM_Boolean st_character_literal_state;
 
 
 <INITIAL>[A-Za-z_][A-Za-z_0-9]*	{
-	yylval.identifer = mgc_create_identifier(yytext);
-	return IDENTIFER;
+	yylval.identifier = mgc_create_identifier(yytext);
+	return IDENTIFIER;
 }
 
 <INITIAL>[1-9][0-9]* {

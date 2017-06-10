@@ -829,6 +829,7 @@ typedef struct {
 struct MGC_Compiler_tag{
 	InputMode	input_mode;
 	int			current_line_number;
+	StatementList  *statement_list;
 };
 
 
@@ -849,8 +850,8 @@ PackageName	*mgc_chain_package_name(PackageName *list, char *identifier);
 RequireList *mgc_create_require_list(PackageName *package_name);
 RequireList *mgc_chain_require_list(RequireList *list,RequireList *add);
 
-RenameList *mgc_create_rename_list(PackageName package_name, char *identifer);
-RenameList *mgc_chain_rename_list(RenameList *list, RenameList add);
+RenameList *mgc_create_rename_list(PackageName *package_name, char *identifer);
+RenameList *mgc_chain_rename_list(RenameList *list, RenameList *add);
 
 void mgc_set_require_and_rename_list(RequireList *require_list, RenameList *rename_list);
 
@@ -883,7 +884,7 @@ TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base);
 
 Expression *mgc_alloc_expression(ExpressionKind kind);
 Expression *mgc_create_comma_expression(Expression *left, Expression *right);
-Expression *mgc_create_assign_expression(Expression *left, AssignmentOperator operator, Expression operand);
+Expression *mgc_create_assign_expression(Expression *left, AssignmentOperator operator, Expression *operand);
 Expression *mgc_create_binary_expression(ExpressionKind operator, Expression *left, Expression *right);
 Expression *mgc_create_minus_expression(Expression *operand);
 Expression *mgc_create_logic_not_expression(Expression *operand);
@@ -979,7 +980,7 @@ Statement *mgc_create_declaration_statement(DVM_Boolean is_final,
 void mgc_start_class_definition(ClassOrMemberModifierList *modifier,
 								DVM_ClassOrInterface class_or_interface,
 								char *identifier,
-								ExpressionList *extends);
+								ExtendsList *extends);
 
 void mgc_class_define(MemberDeclaration *member_list);
 ExtendsList *mgc_create_extends_list(char *identifier);
@@ -1014,7 +1015,7 @@ MemberDeclaration *mgc_create_field_member(ClassOrMemberModifierList *modifier,
 ExceptionList *mgc_create_thorws(char *identifer);
 ExceptionList *mgc_chain_exception_list(ExceptionList *list, char *identifier);
 
-void mgc_create_delegate_definition(TypeSpecifier *type, char identifier,
+void mgc_create_delegate_definition(TypeSpecifier *type, char *identifier,
 									ParameterList *parameter, ExceptionList *thorws);
 
 
@@ -1022,7 +1023,7 @@ void mgc_create_enum_definition(char *identifier, Enumerator *enumerator);
 Enumerator *mgc_create_enumerator(char *identifier);
 Enumerator *mgc_chain_enumerator(Enumerator *enumerator, char *identifier);
 
-void *mgc_create_cons_definition(TypeSpecifier *type,
+void *mgc_create_const_definition(TypeSpecifier *type,
 								 char *identifier,
 								 Expression *initializer);
 
