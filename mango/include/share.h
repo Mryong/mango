@@ -21,4 +21,10 @@ char dvm_wctochar(wchar_t src);
 int dvm_print_wcs(FILE *fp,wchar_t *wcs);
 int dvm_print_wcs_ln(FILE *fp,wchar_t *wcs);
 DVM_Boolean dvm_idwdigit(wchar_t ch);
+
+
+
+/* util.c */
+DVM_Boolean dvm_equal_string(char *str1, char *str2);
+void dvm_strncopy(char *dest, char *src, size_t buf_size);
 #endif /* share_h */

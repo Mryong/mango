@@ -13,6 +13,17 @@
 #include "DVM_code.h"
 #include "MGC.h"
 
+#define MESSAGE_ARGUMENT_MAX (256)
+#define LINE_BUF_SIZE  (1024)
+
+typedef enum {
+	INT_MESSAGE_ARGUMENT = 1,
+	DOUBLE_MESSAGE_ARGUMENT,
+	STRING_MESSAGE_ARGUMENT,
+	CHARACTER_MESSAGE_ARGUMENT,
+	MESSAGE_ARGUMENT_END
+}MessageArgumentType;
+
 
 
 typedef enum {
@@ -205,7 +216,7 @@ typedef struct RenameList_tag{
 	char	*original_name;
 	char	*renamed_name;
 	int	line_number;
-	struct	RequireList_tag	*next;
+	struct	RenameList_tag	*next;
 }RenameList;
 
 
@@ -290,7 +301,7 @@ typedef struct {
 	TypeSpecifier	*type;
 	char			*name;
 	Expression		*initializer;
-	DVM_Boolean		*is_final;
+	DVM_Boolean		is_final;
 	int				variable_index;
 	DVM_Boolean		is_loacl;
 }Declaration;
@@ -664,7 +675,7 @@ struct	FunctionDefinition_tag {
 	TypeSpecifier		*type;
 	PackageName			*package_name;
 	char				*name;
-	ParameterList	*parameter_list;
+	ParameterList		*parameter_list;
 	Block				*block;
 	int					*local_variable_count;
 	Declaration			**local_variable;
@@ -827,9 +838,16 @@ typedef struct {
 
 
 struct MGC_Compiler_tag{
-	InputMode	input_mode;
-	int			current_line_number;
-	StatementList  *statement_list;
+	PackageName			*package_name;
+	SourceSuffix		*source_suffix;
+	char				*path;
+	RequireList			*require_list;
+	RenameList			*rename_list;
+	FunctionDefinition	*function_definition;
+	int					dvm_function_count;
+	InputMode			input_mode;
+	int					current_line_number;
+	StatementList		*statement_list;
 };
 
 
@@ -843,7 +861,7 @@ void mgc_set_source_string(char **source);
 
 /* create.c */
 DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl);
-Declaration	*mgc_create_declaration(DVM_Boolean is_final,TypeSpecifier type, char *identifier);
+Declaration	*mgc_alloc_declaration(DVM_Boolean is_final,TypeSpecifier *type, char *identifier);
 PackageName *mgc_create_package_name(char *identifier);
 PackageName	*mgc_chain_package_name(PackageName *list, char *identifier);
 
@@ -1044,6 +1062,8 @@ char *mgc_create_identifier(char *str);
 
 /* util.c */
 MGC_Compiler *mgc_get_current_compiler(void);
+char *mgc_package_name_to_string(PackageName *package_name);
+DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2);
 
 
 #endif /* mango_h */
