@@ -152,31 +152,58 @@ static RequireList *add_default_package(RequireList *require_list){
 		pos = pos->next;
 	}
 	
+	if (!default_package_has_required) {
+		PackageName *dpn = mgc_create_package_name(DVM_MANGO_DEFAULE_PACKAGE_P1);
+		dpn = mgc_chain_package_name(dpn, DVM_NANGO_DEFAULT_PACKAGE_P2);
+	    RequireList *new_list = mgc_create_require_list(dpn);
+		new_list->next = require_list;
+		return new_list;
+	}
 	
-	
+	return require_list;
 }
 
 void mgc_set_require_and_rename_list(RequireList *require_list, RenameList *rename_list){
 	MGC_Compiler *compiler = mgc_get_current_compiler();
 	char *current_package_name_str = mgc_package_name_to_string(compiler->package_name);
 	if (!dvm_equal_string(current_package_name_str, DVM_NANGO_DEFAULT_PACKAGE)) {
-		
+		require_list = add_default_package(require_list);
 	}
 	free(current_package_name_str);
 	compiler->require_list = require_list;
 	compiler->rename_list = rename_list;
-
-	
-
-
 }
 
 FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *identifier,
 												   ParameterList *parameter_list, ExceptionList *exception_list,
-												   Block *block);
+												   Block *block){
+	
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	
+	FunctionDefinition  *function_definition = malloc(sizeof(*function_definition));
+	function_definition->type = type;
+	function_definition->name = identifier;
+	function_definition->parameter_list = parameter_list;
+	function_definition->throws = exception_list;
+	function_definition->block = block;
+	function_definition->class_definition = NULL;
+	function_definition->local_variable_count = 0;
+	function_definition->local_variable = NULL;
+	function_definition->end_line_number = compiler->current_line_number;
+	function_definition->next = NULL;
+	if (block) {
+		block->type = FUNCTION_BLOCK;
+		block->parent.function_info.function = function_definition;
+	}
+	return function_definition;
+	
+}
 void mgc_function_define(TypeSpecifier *type, char *identifier,
 						 ParameterList *parameter_list, ExceptionList *exception_list,
-						 Block *block);
+						 Block *block){
+
+
+}
 
 ParameterList *mgc_create_parameter(TypeSpecifier *type, char *identifier);
 ParameterList *mgc_chain_parameter(ParameterList *list, TypeSpecifier *type, char *identifier);

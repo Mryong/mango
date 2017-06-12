@@ -526,13 +526,13 @@ typedef struct {
 }FunctionBlockInfo;
 
 typedef struct Block_tag{
-	BlockType			*type;
+	BlockType			type;
 	StatementList		*statement_list;
 	DeclarationList		*declaration_list;
 	struct Block_tag	*out_block;
 	union {
-		FunctionBlockInfo	*function;
-		StatementBlockInfo	*statement;
+		FunctionBlockInfo	function_info;
+		StatementBlockInfo	statement_info;
 	}parent;
 	
 
@@ -843,11 +843,29 @@ struct MGC_Compiler_tag{
 	char				*path;
 	RequireList			*require_list;
 	RenameList			*rename_list;
-	FunctionDefinition	*function_definition;
-	int					dvm_function_count;
-	InputMode			input_mode;
-	int					current_line_number;
+	FunctionDefinition	*function_list;
 	StatementList		*statement_list;
+	DeclarationList		*declaration_list;
+	ClassDefinition		*class_definition_list;
+	DelegateDefinition	*delegate_definition_list;
+	EnumDefinition		*enum_definition_list;
+	ConstantDefinition	*constant_definition_list;
+	int					current_line_number;
+	Block				*current_block;
+	ClassDefinition		*current_definition;
+	TryStatement		*current_statement;
+	CatchClause			*catch_clause;
+	int					*current_finally_label;
+	InputMode			input_mode;
+	CompilerList		*required_list;
+	int					array_method_count;
+	FunctionDefinition	*array_method;
+	int					string_method_count;
+	FunctionDefinition	*string_method;
+	Encoding			source_encoding;
+	
+	
+	
 };
 
 
