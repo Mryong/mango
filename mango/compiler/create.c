@@ -13,12 +13,6 @@
 #include "share.h"
 #include "DVM_dev.h"
 
-Expression *mgc_alloc_expression(ExpressionKind kind){
-	Expression *exp = malloc(sizeof(*exp));
-	exp->kind = kind;
-	exp->line_number = 1;
-	return exp;
-}
 
 
 
@@ -201,54 +195,254 @@ FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *id
 void mgc_function_define(TypeSpecifier *type, char *identifier,
 						 ParameterList *parameter_list, ExceptionList *exception_list,
 						 Block *block){
+	
+	if (mgc_search_function(identifier) || mgc_search_declaration(identifier, NULL)) {
+		mgc_compile_error(mgc_get_current_compiler()->current_line_number, FUNCTION_MULTIPLE_DEFINI_ERR,STRING_MESSAGE_ARGUMENT,"name",identifier,MESSAGE_ARGUMENT_END);
+	}
+	
+	mgc_create_function_definition(type, identifier, parameter_list, exception_list, block);
+	
+	
 
 
 }
 
-ParameterList *mgc_create_parameter(TypeSpecifier *type, char *identifier);
-ParameterList *mgc_chain_parameter(ParameterList *list, TypeSpecifier *type, char *identifier);
+ParameterList *mgc_create_parameter(TypeSpecifier *type, char *identifier){
+	ParameterList *parameter = malloc(sizeof(*parameter));
+	parameter->type = type;
+	parameter->name = identifier;
+	parameter->line_number = mgc_get_current_compiler()->current_line_number;
+	parameter->next = NULL;
+	return parameter;
+}
 
-ArgumentList *mgc_create_argument(Expression *expression);
-ArgumentList *mgc_chain_argument(ArgumentList *list,Expression *expression);
+ParameterList *mgc_chain_parameter(ParameterList *list, TypeSpecifier *type, char *identifier){
+	ParameterList *add = mgc_create_parameter(type, identifier);
+	ParameterList *pos = list;
+	for (; pos->next; pos = pos->next)
+		;
+	pos->next = add;
+	return list;
+}
 
-ExpressionList *mgc_create_expression_list(Expression *expression);
-ExpressionList *mgc_chain_expression_list(ExpressionList *list, Expression *expression);
+ArgumentList *mgc_create_argument(Expression *expression){
+	ArgumentList *argument = malloc(sizeof(*argument));
+	argument->expression = expression;
+	argument->next = NULL;
+	return argument;
+
+}
+
+ArgumentList *mgc_chain_argument(ArgumentList *list,Expression *expression){
+	ArgumentList *pos = list;
+	for (; pos->next; pos = pos->next)
+		;
+	pos->next = mgc_create_argument(expression);
+	return list;
+
+}
+
+ExpressionList *mgc_create_expression_list(Expression *expression){
+	ExpressionList *expression_list = malloc(sizeof(*expression_list));
+	expression_list->expression = expression;
+	expression_list->next = NULL;
+	return expression_list;
+}
 
 
-StatementList *mgc_create_statement_list(Statement *statement);
-StatementList *mgc_chain_statement_list(StatementList *statement_list, Statement *statement);
+ExpressionList *mgc_chain_expression_list(ExpressionList *list, Expression *expression){
+	ExpressionList *pos = list;
+	for (; pos->next; pos = pos->next)
+		;
+	pos->next = mgc_create_expression_list(expression);
+	return list;
+}
+
+
+StatementList *mgc_create_statement_list(Statement *statement){
+	StatementList *statement_list = malloc(sizeof(*statement_list));
+	statement_list->statement = statement;
+	statement_list->next = NULL;
+	return statement_list;
+}
+
+StatementList *mgc_chain_statement_list(StatementList *statement_list, Statement *statement){
+	StatementList *add = mgc_create_statement_list(statement);
+	if (statement_list == NULL) {
+		return add;
+	}
+	
+	StatementList *pos = statement_list;
+	for (; pos->next; pos = pos->next)
+		;
+	
+	pos->next = add;
+	return statement_list;
+	
+}
 
 
 
-TypeSpecifier *mgc_create_type_specifier(DVM_BaseType base_type);
-TypeSpecifier *mgc_create_identifier_type_specifier(char *identifier);
-TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base);
+TypeSpecifier *mgc_create_type_specifier(DVM_BaseType base_type){
+	TypeSpecifier *ts = mgc_alloc_type_specifier(base_type);
+	ts->line_number = mgc_get_current_compiler()->current_line_number;
+	return ts;
+}
+
+TypeSpecifier *mgc_create_identifier_type_specifier(char *identifier){
+	TypeSpecifier *ts = mgc_alloc_type_specifier(DVM_UNSPECIFIED_IDENTIFIER_TYPE);
+	ts->identifier = identifier;
+	ts->line_number = mgc_get_current_compiler()->current_line_number;
+	return ts;
+
+}
+TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base){
+	TypeDerive *type_derive = mgc_alloc_type_derive(ARRAY_DERIVE);
+	if (base->derive == NULL) {
+		base->derive = type_derive;
+	}else{
+		TypeDerive *pos;
+		for (pos = base->derive; pos->next; pos = pos->next)
+			;
+		pos->next = type_derive;
+	
+	}
+	
+	return base;
+	
+}
 
 
-Expression *mgc_alloc_expression(ExpressionKind kind);
-Expression *mgc_create_comma_expression(Expression *left, Expression *right);
-Expression *mgc_create_assign_expression(Expression *left, AssignmentOperator operator, Expression *operand);
-Expression *mgc_create_binary_expression(ExpressionKind operator, Expression *left, Expression *right);
-Expression *mgc_create_minus_expression(Expression *operand);
-Expression *mgc_create_logic_not_expression(Expression *operand);
-Expression *mgc_create_bit_not_expression(Expression *operand);
-Expression *mgc_create_index_expression(Expression *array,Expression *index);
-Expression *mgc_create_incdec_expression(Expression *operand,ExpressionKind inc_or_dec);
-Expression *mgc_create_instanceof_expression(Expression *operand, TypeSpecifier *type);
-Expression *mgc_create_identifier_expression(char *identifier);
-Expression *mgc_create_function_call_expression(Expression *function, ArgumentList *argument);
-Expression *mgc_create_down_cast_expression(Expression *operand,TypeSpecifier *type);
-Expression *mgc_create_member_expression(Expression *expression, char *member_name);
-Expression *mgc_create_boolean_expression(DVM_Boolean value);
-Expression *mgc_create_null_expression(void);
-Expression *mgc_create_new_expression(char *class_name, char *method_name, ArgumentList *argument);
-Expression *mgc_create_array_literal_expression(ExpressionList *list);
+Expression *mgc_alloc_expression(ExpressionKind kind){
+	Expression *exp = malloc(sizeof(*exp));
+	exp->kind = kind;
+	exp->type = NULL;
+	exp->line_number = mgc_get_current_compiler()->current_line_number;
+	return exp;
+
+}
+
+
+Expression *mgc_create_comma_expression(Expression *left, Expression *right){
+	Expression *exp = mgc_alloc_expression(COMMA_EXPRESSION);
+	exp->u.comma_expression.left = left;
+	exp->u.comma_expression.right = right;
+	return exp;
+}
+Expression *mgc_create_assign_expression(Expression *left, AssignmentOperator operator, Expression *operand){
+	Expression *exp = mgc_alloc_expression(ASSIGN_EXPRESSION);
+	exp->u.assignment_expression.operator = operator;
+	exp->u.assignment_expression.left = left;
+	exp->u.assignment_expression.operand = operand;
+	return exp;
+}
+Expression *mgc_create_binary_expression(ExpressionKind operator, Expression *left, Expression *right){
+	Expression *exp = mgc_alloc_expression(operator);
+	exp->u.binary_expression.left = left;
+	exp->u.binary_expression.right = right;
+	return exp;
+}
+
+Expression *mgc_create_minus_expression(Expression *operand){
+	Expression *exp = mgc_alloc_expression(MINUS_EXPRESSION);
+	exp->u.minus_expression = operand;
+	return exp;
+}
+
+
+Expression *mgc_create_logic_not_expression(Expression *operand){
+	Expression *exp = mgc_alloc_expression(LOGICAL_NOT_EXPRESSION);
+	exp->u.logic_not = operand;
+	return exp;
+	
+
+}
+Expression *mgc_create_bit_not_expression(Expression *operand){
+	Expression *exp = mgc_alloc_expression(BIT_NOT_EXPRESSION);
+	exp->u.bit_not = exp;
+	return exp;
+
+}
+Expression *mgc_create_index_expression(Expression *array,Expression *index){
+	Expression *exp = mgc_alloc_expression(INDEX_EXPRESSION);
+	exp->u.index_expression.array = array;
+	exp->u.index_expression.index = index;
+	return exp;
+}
+Expression *mgc_create_incdec_expression(Expression *operand,ExpressionKind inc_or_dec){
+	Expression *exp = mgc_alloc_expression(inc_or_dec);
+	exp->u.inc_dec.operand = operand;
+	return exp;
+
+}
+Expression *mgc_create_instanceof_expression(Expression *operand, TypeSpecifier *type){
+	Expression *exp = mgc_alloc_expression(INSTANCEOF_EXPRESSION);
+	exp->u.instanceof.expression = operand;
+	exp->u.instanceof.type = type;
+	return exp;
+}
+
+Expression *mgc_create_identifier_expression(char *identifier){
+	Expression *exp = mgc_alloc_expression(IDENTIFIER_EXPRESSION);
+	exp->u.identifer_express.name = identifier;
+	return exp;
+}
+
+Expression *mgc_create_function_call_expression(Expression *function, ArgumentList *argument){
+	Expression *exp = mgc_alloc_expression(FUNCTION_CALL_EXPRESSION);
+	exp->u.function_call_expression.function = function;
+	exp->u.function_call_expression.argument = argument;
+	return exp;
+}
+
+
+Expression *mgc_create_down_cast_expression(Expression *operand,TypeSpecifier *type){
+	Expression *exp = mgc_alloc_expression(DOWN_CAST_EXPRESSION);
+	exp->u.down_cast.operand = operand;
+	exp->u.down_cast.type = type;
+	return exp;
+}
+Expression *mgc_create_member_expression(Expression *expression, char *member_name){
+	Expression *exp = mgc_alloc_expression(MEMBER_EXPRESSION);
+	exp->u.member_expression.expression = expression;
+	exp->u.member_expression.member_name = member_name;
+	return exp;
+}
+Expression *mgc_create_boolean_expression(DVM_Boolean value){
+	Expression *exp = mgc_alloc_expression(BOOLEAN_EXPRESSION);
+	exp->u.boolean_value = value;
+	return exp;
+}
+Expression *mgc_create_null_expression(void){
+	Expression *exp = mgc_alloc_expression(NULL_EXPRESSION);
+	return exp;
+
+
+}
+
+Expression *mgc_create_new_expression(char *class_name, char *method_name, ArgumentList *argument){
+	Expression *exp = mgc_alloc_expression(NEW_EXPRESSION);
+	exp->u.new_e.argument = argument;
+	exp->u.new_e.class_name = class_name;
+	exp->u.new_e.method_name = method_name;
+	return exp;
+
+}
+Expression *mgc_create_array_literal_expression(ExpressionList *list){
+	Expression *exp = mgc_alloc_expression(ARRAY_LITERAL_EXPRESSION);
+	exp->u.array_literal = list;
+	return exp;
+
+}
 Expression *mgc_create_base_array_creation(DVM_BaseType base_type,
 										   ArrayDimension *dim_expr_list,
 										   ArrayDimension *dim_list);
+
+
 Expression *mgc_create_class_array_creation(TypeSpecifier *type,
 											ArrayDimension *dim_expr_list,
 											ArrayDimension *dim_list);
+
 Expression *mgc_create_this_expression(void);
 Expression *mgc_create_super_expression(void);
 

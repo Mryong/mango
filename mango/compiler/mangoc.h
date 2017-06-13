@@ -29,6 +29,7 @@ typedef enum {
 typedef enum {
 	PARSE_ERR,
 	CHARACTER_INVALID_ERR,
+	FUNCTION_MULTIPLE_DEFINI_ERR,
 	BAD_MULTIPLE_ERR,
 	UNEXPECTED_WIDE_STRING_IN_COMPILE_ERR,
 	ARRAY_ELEMENT_CAN_NOT_BE_FINAL_ERR,
@@ -168,7 +169,7 @@ typedef enum {
 	BIT_NOT_EXPRESSION,
 	LOGICAL_NOT_EXPRESSION,
 	FUNCTION_CALL_EXPRESSION,
-	MENBER_EXPRESSION,
+	MEMBER_EXPRESSION,
 	NULL_EXPRESSION,
 	THIS_EXPRESSION,
 	SUPER_EXPRESSION,
@@ -229,7 +230,7 @@ typedef struct ParameterList_tag{
 	TypeSpecifier	*type;
 	char	*name;
 	int	line_number;
-	struct PackageName_tag	*next;
+	struct ParameterList_tag	*next;
 }ParameterList;
 
 typedef enum {
@@ -377,7 +378,7 @@ typedef struct {
 
 typedef struct ExpressionList_tag{
 	Expression	*expression;
-	struct ExceptionList_tag	*next;
+	struct ExpressionList_tag	*next;
 }ExpressionList;
 
 typedef struct {
@@ -472,25 +473,25 @@ struct Expression_tag{
 		int						int_value;
 		double					double_value;
 		DVM_Char				*string_value;
-		IdentifierExpression	*identifer_express;
-		CommaExpression			*comma_expression;
-		AssignmentExpression	*assignment_expression;
-		BinaryExpression		*binary_expression;
+		IdentifierExpression	identifer_express;
+		CommaExpression			comma_expression;
+		AssignmentExpression	assignment_expression;
+		BinaryExpression		binary_expression;
 		Expression				*minus_expression;
 		Expression				*logic_not;
 		Expression				*bit_not;
-		FunctionCallExpress		*function_call_expression;
-		MemberExpression		*member_expression;
-		ExceptionList			*array_literal;
-		IndexExpression			*index_expression;
-		IncrementOrDecrement	*inc_dec;
-		InstanceofExpression	*instanceof;
-		DownCastExpression		*down_cast;
-		CastExpression			*cast;
-		UpCastExpression		*up_cast;
-		NewExpression			*new_e;
-		ArrayCreation			*array_creation;
-		EnumeratorExpression	*enumerator;
+		FunctionCallExpress		function_call_expression;
+		MemberExpression		member_expression;
+		ExpressionList			*array_literal;
+		IndexExpression			index_expression;
+		IncrementOrDecrement	inc_dec;
+		InstanceofExpression	instanceof;
+		DownCastExpression		down_cast;
+		CastExpression			cast;
+		UpCastExpression		up_cast;
+		NewExpression			new_e;
+		ArrayCreation			array_creation;
+		EnumeratorExpression	enumerator;
 	}u;
 	
 };
@@ -709,7 +710,7 @@ typedef struct {
 typedef struct ExtendsList_tag{
 	char	*identifer;
 	ClassDefinition	*class_definition;
-	struct	Expression_tag	*next;
+	struct	ExtendsList_tag	*next;
 }ExtendsList;
 
 typedef enum {
@@ -737,7 +738,7 @@ typedef struct {
 }FieldMember;
 
 struct MemberDeclaration_tag{
-	MemberKind		*kind;
+	MemberKind			kind;
 	DVM_AccessModifier	access_modifier;
 	union {
 		FieldMember		*field;
@@ -753,9 +754,9 @@ struct ClassDefinition_tag {
 	DVM_ClassOrInterface class_or_interface;
 	PackageName	*package_name;
 	char		*name;
-	ExceptionList	*extends;
+	ExtendsList	*extends;
 	ClassDefinition	*super_class;
-	ExceptionList	*interface_list;
+	ExtendsList	*interface_list;
 	MemberDeclaration	*member;
 	int line_number;
 	struct	ClassDefinition_tag	*next;
@@ -1082,6 +1083,15 @@ char *mgc_create_identifier(char *str);
 MGC_Compiler *mgc_get_current_compiler(void);
 char *mgc_package_name_to_string(PackageName *package_name);
 DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2);
+FunctionDefinition *mgc_search_function(char *name);
+Declaration *mgc_search_declaration(char *identifier, Block *block);
+ConstantDefinition *mgc_search_constant(char *identifier);
+ClassDefinition *mgc_search_class(char *identifier);
+DelegateDefinition *mgc_search_delegate(char *identifier);
+EnumDefinition *mg_search_enum(char *identifier);
+MemberDeclaration *mgc_search_member(ClassDefinition *class_def,char *member_name);
+TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type);
+TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag);
 
 
 #endif /* mango_h */
