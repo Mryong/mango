@@ -542,7 +542,7 @@ typedef struct Block_tag{
 
 typedef struct Elsif_tag{
 	Expression	*condition;
-	Block	then_block;
+	Block		*then_block;
 	struct Elsif_tag	*next;
 }Elsif;
 
@@ -653,21 +653,21 @@ typedef enum {
 }StatementType;
 
 struct Statement_tag {
-	StatementType		*type;
+	StatementType		type;
 	int					line_number;
 	union {
 		Expression		*expression_s;
-		IfStatement		*if_s;
-		SwitchStatement	*switch_s;
-		WhileStatement	*while_s;
-		ForStatement	*for_s;
-		DoWhileStatement	*do_while_s;
-		ForeachStatement	*foreach_s;
-		BreakStatement		*break_s;
-		ContinueStatement	*continue_s;
-		ReturnStatement		*return_s;
-		TryStatement		*try_s;
-		ThrowsStatement		*throw_s;
+		IfStatement		if_s;
+		SwitchStatement	switch_s;
+		WhileStatement	while_s;
+		ForStatement	for_s;
+		DoWhileStatement	do_while_s;
+		ForeachStatement	foreach_s;
+		BreakStatement		break_s;
+		ContinueStatement	continue_s;
+		ReturnStatement		return_s;
+		TryStatement		try_s;
+		ThrowsStatement		throw_s;
 		Declaration			*declaration_s;
 	}u;
 };
@@ -749,7 +749,7 @@ struct MemberDeclaration_tag{
 };
 
 struct ClassDefinition_tag {
-	DVM_Boolean		*is_abstract;
+	DVM_Boolean		is_abstract;
 	DVM_AccessModifier	access_modifier;
 	DVM_ClassOrInterface class_or_interface;
 	PackageName	*package_name;

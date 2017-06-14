@@ -842,7 +842,7 @@ class_definition: class_or_interface IDENTIFIER extends LC
 
 
 class_or_member_modifier_list: class_or_member_modifier
-                class_or_member_modifier_list class_or_interface
+                class_or_member_modifier_list class_or_member_modifier
                 {
                         $$ = mgc_chain_class_or_member_modifier($1,$2);
                 }

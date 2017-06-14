@@ -12,6 +12,7 @@
 #include <string.h>
 #include "share.h"
 #include "DVM_dev.h"
+#include <assert.h>
 
 
 
@@ -313,14 +314,14 @@ TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base){
 }
 
 
-Expression *mgc_alloc_expression(ExpressionKind kind){
-	Expression *exp = malloc(sizeof(*exp));
-	exp->kind = kind;
-	exp->type = NULL;
-	exp->line_number = mgc_get_current_compiler()->current_line_number;
-	return exp;
-
-}
+//Expression *mgc_alloc_expression(ExpressionKind kind){
+//	Expression *exp = malloc(sizeof(*exp));
+//	exp->kind = kind;
+//	exp->type = NULL;
+//	exp->line_number = mgc_get_current_compiler()->current_line_number;
+//	return exp;
+//
+//}
 
 
 Expression *mgc_create_comma_expression(Expression *left, Expression *right){
@@ -436,88 +437,321 @@ Expression *mgc_create_array_literal_expression(ExpressionList *list){
 }
 Expression *mgc_create_base_array_creation(DVM_BaseType base_type,
 										   ArrayDimension *dim_expr_list,
-										   ArrayDimension *dim_list);
+										   ArrayDimension *dim_list){
+	TypeSpecifier *type = mgc_alloc_type_specifier(base_type);
+	Expression *exp = mgc_create_class_array_creation(type, dim_expr_list, dim_list);
+	return exp;
+
+
+}
 
 
 Expression *mgc_create_class_array_creation(TypeSpecifier *type,
 											ArrayDimension *dim_expr_list,
-											ArrayDimension *dim_list);
+											ArrayDimension *dim_list){
+	
+	Expression *exp = mgc_alloc_expression(ARRAY_CREATION_EXPRESSION);
+	exp->u.array_creation.type = type;
+	exp->u.array_creation.dimension = mgc_chain_array_dimension(dim_expr_list, dim_list);
+	return exp;
+}
 
 Expression *mgc_create_this_expression(void);
 Expression *mgc_create_super_expression(void);
 
-ArrayDimension *mgc_create_array_dimension(Expression *expression);
-ArrayDimension *mgc_chain_array_dimension(ArrayDimension *list,
-										  ArrayDimension *dim);
+ArrayDimension *mgc_create_array_dimension(Expression *expression){
+	ArrayDimension *dim = malloc(sizeof(*dim));
+	dim->expression = expression;
+	dim->next = NULL;
+	return dim;
 
-Statement *mgc_alloc_statement(StatementType type);
+}
+
+ArrayDimension *mgc_chain_array_dimension(ArrayDimension *list,
+										  ArrayDimension *dim){
+	ArrayDimension *pos = list;
+	for (; pos->next; pos = pos->next)
+		;
+	pos->next = dim;
+	return list;
+}
+
+Statement *mgc_alloc_statement(StatementType type){
+	Statement *statement = malloc(sizeof(*statement));
+	statement->type = type;
+	statement->line_number = mgc_get_current_compiler()->current_line_number;
+	return statement;
+
+}
+
+
 Statement *mgc_create_if_statement(Expression *condition,
 								   Block *then_block, Elsif *elsif_list,
-								   Block *else_block);
+								   Block *else_block){
+	Statement *if_statement = mgc_alloc_statement(IF_STATEMENT);
+	if_statement->u.if_s.condition = condition;
+	if_statement->u.if_s.then_block = then_block;
+	if_statement->u.if_s.elsif_list = elsif_list;
+	if_statement->u.if_s.else_block = else_block;
+	return if_statement;
+}
 
-Elsif *mgc_create_elsif_statement(Expression *expr, Block *block);
-Elsif *mgc_chain_elsif_statement(Elsif *list, Elsif *add);
+
+Elsif *mgc_create_elsif_statement(Expression *expr, Block *block){
+	Elsif *elsif = malloc(sizeof(*elsif));
+	elsif->condition = expr;
+	elsif->then_block = block;
+	elsif->next = NULL;
+	return  elsif;
+
+}
+Elsif *mgc_chain_elsif_statement(Elsif *list, Elsif *add){
+	
+	Elsif *pos;
+	for (pos = list; pos->next; pos = pos->next)
+		;
+	pos->next = add;
+	return list;
+}
 
 Statement *mgc_create_switch_statement(Expression *expr,
 									   CaseList *case_list,
-									   Block *default_block);
+									   Block *default_block){
+	Statement *statement = mgc_alloc_statement(SWITCH_STATEMENT);
+	statement->u.switch_s.expression = expr;
+	statement->u.switch_s.case_list = case_list;
+	statement->u.switch_s.default_block = default_block;
+	return statement;
+}
 
-CaseList *mgc_create_one_case(ExpressionList *expression_list, Block *block);
-CaseList *mgc_chain_case(CaseList *list, CaseList *add);
+CaseList *mgc_create_one_case(ExpressionList *expression_list, Block *block){
+	CaseList *one_case = malloc(sizeof(*one_case));
+	one_case->expression_list= expression_list;
+	one_case->block = block;
+	one_case->next = NULL;
+	return one_case;
+}
+CaseList *mgc_chain_case(CaseList *list, CaseList *add){
+	CaseList *pos;
+	for (pos = list; pos->next; pos = pos->next)
+		;
+	pos->next = add;
+	return pos;
+}
 
 Statement *mgc_create_while_statement(char *label,
 									  Expression *condition,
-									  Block *block);
+									  Block *block){
+	Statement *while_s = mgc_alloc_statement(WHILE_STATEMENT);
+	while_s->u.while_s.label = label;
+	while_s->u.while_s.condition = condition;
+	while_s->u.while_s.block = block;
+	block->type = WHILE_STATEMENT_BLOCK;
+	block->parent.statement_info.statement = while_s;
+	return while_s;
+}
 
 Statement *mgc_create_foreach_statement(char *label,
 										char *variable,
 										Expression *collection,
-										Block *block);
+										Block *block){
+	Statement *foreach_s = mgc_alloc_statement(FOREACH_STATEMENT);
+	foreach_s->u.foreach_s.label = label;
+	foreach_s->u.foreach_s.variable = variable;
+	foreach_s->u.foreach_s.collection = collection;
+	foreach_s->u.foreach_s.block = block;
+	return foreach_s;
+}
+
 
 Statement *mgc_create_for_statement(char *label,
 									Expression *init,
 									Expression *condition,
 									Expression *post,
-									Block *block);
+									Block *block){
+	Statement *for_s = mgc_alloc_statement(FOR_STATEMENT);
+	for_s->u.for_s.label = label;
+	for_s->u.for_s.init = init;
+	for_s->u.for_s.condition = condition;
+	for_s->u.for_s.post = post;
+	for_s->u.for_s.block = block;
+	block->type = FOR_STATEMENT_BLOCK;
+	block->parent.statement_info.statement = for_s;
+	return for_s;
+}
 
 Statement *mgc_create_do_while_statement(char *label,
 										 Block *block,
-										 Expression *condition);
+										 Expression *condition){
+	Statement *do_while_s  = mgc_alloc_statement(DO_WHILE_STATEMENT);
+	do_while_s->u.do_while_s.label = label;
+	do_while_s->u.do_while_s.block = block;
+	do_while_s->u.do_while_s.condition = condition;
+	block->type = DO_WHILE_STATEMENT_BLOCK;
+	block->parent.statement_info.statement = do_while_s;
+	return do_while_s;
+}
 
 
-Block *mgc_alloc_block(void);
-Block *mgc_open_block(void);
-Block *mgc_close_block(Block *block, StatementList *statement_list);
+Block *mgc_alloc_block(void){
+	Block *block = malloc(sizeof(*block));
+	block->type = UNDEFINED_BLOCK;
+	block->declaration_list = NULL;
+	block->out_block = NULL;
+	block->statement_list = NULL;
+	return block;
+}
 
-Statement *mgc_create_expression_statement(Expression *expression);
-Statement *mgc_create_return_statement(Expression *expression);
-Statement *mgc_create_break_statement(char *label);
-Statement *mgc_create_continue_statement(char *label);
+
+Block *mgc_open_block(void){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	Block *new_block = mgc_alloc_block();
+	new_block->out_block = compiler->current_block;
+	compiler->current_block = new_block;
+	return new_block;
+	
+}
+Block *mgc_close_block(Block *block, StatementList *statement_list){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	assert(compiler->current_block == block);
+	block->statement_list = statement_list;
+	compiler->current_block = block->out_block;
+	return block;
+}
+
+Statement *mgc_create_expression_statement(Expression *expression){
+	Statement *expression_s = mgc_alloc_statement(EXPRESSION_STATEMENT);
+	expression_s->u.expression_s = expression;
+	return expression_s;
+
+}
+Statement *mgc_create_return_statement(Expression *expression){
+	Statement *return_s = mgc_alloc_statement(RETURN_STATEMENT);
+	return_s->u.return_s.return_value = expression;
+	return return_s;
+}
+Statement *mgc_create_break_statement(char *label){
+	Statement *break_s = mgc_alloc_statement(BREAK_STATEMENT);
+	break_s->u.break_s.label = label;
+	return break_s;
+
+}
+Statement *mgc_create_continue_statement(char *label){
+	Statement *continue_s = mgc_alloc_statement(CONTINUE_STATEMENT);
+	continue_s->u.continue_s.label = label;
+	return continue_s;
+}
+
 Statement *mgc_create_try_statement(Block *try_block,
 									CatchClause *catch_clause,
-									Block *finally_block);
+									Block *finally_block){
+	Statement *try_s = mgc_alloc_statement(TRY_STATEMENT);
+	try_s->u.try_s.try_block = try_block;
+	try_block->type = TRY_CLAUSE_BLOCK;
+	try_s->u.try_s.catch_clause = catch_clause;
+	if (finally_block) {
+		finally_block->type = FINALLY_CLAUSE_BLOCK;
+	}
+	try_s->u.try_s.finally_block = finally_block;
+	return try_s;
+}
 
 CatchClause *mgc_create_catch_clause(TypeSpecifier *type,
 									 char *variable_name,
-									 Block *block);
-CatchClause *mgc_start_catch_clause(void);
+									 Block *block){
+	CatchClause *catch_clause = alloca(sizeof(*catch_clause));
+	catch_clause->type = type;
+	catch_clause->variable_name = variable_name;
+	catch_clause->block = block;
+	block->type = CATCH_CLAUSE_BLOCK;
+	return catch_clause;
+	
+}
+CatchClause *mgc_start_catch_clause(void){
+	CatchClause *cc = malloc(sizeof(*cc));
+	cc->line_number = mgc_get_current_compiler()->current_line_number;
+	cc->next = NULL;
+	return cc;
+}
 CatchClause *mgc_end_catch_clause(CatchClause *catch_clause,
 								  TypeSpecifier *type,
 								  char *variable_name,
-								  Block *block);
-CatchClause *mgc_chain_catch_clause(CatchClause *list, CatchClause *add);
+								  Block *block){
+	catch_clause->type = type;
+	catch_clause->variable_name = variable_name;
+	catch_clause->block = block;
+	return catch_clause;
+}
+
+CatchClause *mgc_chain_catch_clause(CatchClause *list, CatchClause *add){
+	CatchClause *pos;
+	for (pos = list; pos->next; pos = pos->next)
+		;
+	pos->next = add;
+	return pos;
+
+}
 
 
-Statement *mgc_create_throw_statement(Expression *expression);
+Statement *mgc_create_throw_statement(Expression *expression){
+	Statement *throw_statement = mgc_alloc_statement(THROW_STATEMENT);
+	throw_statement->u.throw_s.expression = expression;
+	return throw_statement;
+	
+}
+
 Statement *mgc_create_declaration_statement(DVM_Boolean is_final,
 											TypeSpecifier *type,
 											char *identifier,
-											Expression *initializer);
+											Expression *initializer){
+	if (is_final && initializer == NULL) {
+		mgc_compile_error(mgc_get_current_compiler()->current_line_number, FINAL_VARIABLE_WITHOUT_INITIALIZER_ERR,
+						  STRING_MESSAGE_ARGUMENT,"name",identifier,MESSAGE_ARGUMENT_END);
+	}
+	Statement *ds = mgc_alloc_statement(DECLARATION_STATEMENT);
+	Declaration *declaration = mgc_alloc_declaration(is_final, type, identifier);
+	declaration->initializer = initializer;
+	ds->u.declaration_s = declaration;
+	return ds;
+}
+
+
+DVM_AccessModifier conv_access_modifier(ClassOrMemberModifierKind src){
+	if (src == PUBLIC_MODIFIER) {
+		return DVM_PUBLIC_MODIFIER;
+	}
+	
+	if (src == PRIVATE_MODIFIER) {
+		return DVM_PRIVATE_MODIFIER;
+	}
+	
+	assert(src == NOT_SPECIFIED_MODIFIER);
+	
+	return DVM_FILE_MODIFIER;
+
+}
 
 void mgc_start_class_definition(ClassOrMemberModifierList *modifier,
 								DVM_ClassOrInterface class_or_interface,
 								char *identifier,
-								ExtendsList *extends);
+								ExtendsList *extends){
+	ClassDefinition *class_definition = malloc(sizeof(*class_definition));
+	class_definition->is_abstract = class_or_interface == DVM_INTERFACE_DEFINITION;
+	class_definition->access_modifier = DVM_FILE_MODIFIER;
+	
+	if (modifier) {
+		if (modifier->id_abstract == ABSTRACT_MODIFIER) {
+			class_definition->is_abstract = DVM_TRUE;
+		}
+		
+		class_definition->access_modifier = conv_access_modifier(modifier->access_modifier);
+	}
+	
+	
+	
+
+
+ }
 
 void mgc_class_define(MemberDeclaration *member_list);
 ExtendsList *mgc_create_extends_list(char *identifier);
