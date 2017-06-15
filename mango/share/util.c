@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "DVM.h"
-#include "mangoc.h"
 
 
 DVM_Boolean dvm_equal_string(char *str1, char *str2){

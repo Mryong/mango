@@ -16,6 +16,11 @@
 #define MESSAGE_ARGUMENT_MAX (256)
 #define LINE_BUF_SIZE  (1024)
 
+
+#define UNDEFINED_LABEL (-1)
+#define UNDEFINED_ENUMERATOR (-1)
+#define UNDEFINED_METHOD_INDEX (-1)
+
 typedef enum {
 	INT_MESSAGE_ARGUMENT = 1,
 	DOUBLE_MESSAGE_ARGUMENT,
@@ -693,7 +698,7 @@ typedef enum {
 	PUBLIC_MODIFIER,
 	PRIVATE_MODIFIER,
 	OVERRIDE_MODIFIER,
-	VITRAL_MODIFIER,
+	VIRTUAL_MODIFIER,
 	NOT_SPECIFIED_MODIFIER
 
 }ClassOrMemberModifierKind;
@@ -722,7 +727,7 @@ typedef struct {
 	DVM_Boolean			is_constructor;
 	DVM_Boolean			is_abstract;
 	DVM_Boolean			is_virtual;
-	DVM_Boolean			*is_override;
+	DVM_Boolean			is_override;
 	FunctionDefinition	*function_definition;
 	int					method_index;
 	
@@ -741,8 +746,8 @@ struct MemberDeclaration_tag{
 	MemberKind			kind;
 	DVM_AccessModifier	access_modifier;
 	union {
-		FieldMember		*field;
-		MethodMember	*method;
+		FieldMember		field;
+		MethodMember	method;
 	}u;
 	int line_number;
 	struct MemberDeclaration_tag	*next;
@@ -853,9 +858,9 @@ struct MGC_Compiler_tag{
 	ConstantDefinition	*constant_definition_list;
 	int					current_line_number;
 	Block				*current_block;
-	ClassDefinition		*current_definition;
-	TryStatement		*current_statement;
-	CatchClause			*catch_clause;
+	ClassDefinition		*current_class_definition;
+	TryStatement		*current_try_statement;
+	CatchClause			*current_catch_clause;
 	int					*current_finally_label;
 	InputMode			input_mode;
 	CompilerList		*required_list;
@@ -1032,7 +1037,7 @@ MemberDeclaration *mgc_chain_member_declaration_list(MemberDeclaration *list,
 
 MemberDeclaration *mgc_create_method_member(ClassOrMemberModifierList *modifier,
 											FunctionDefinition *function_definition,
-											DVM_Boolean is_final);
+											DVM_Boolean is_constructor);
 FunctionDefinition *mgc_method_function_definition(TypeSpecifier *type,
 												   char *identifier,
 												   ParameterList *parameter,
@@ -1060,7 +1065,7 @@ void mgc_create_enum_definition(char *identifier, Enumerator *enumerator);
 Enumerator *mgc_create_enumerator(char *identifier);
 Enumerator *mgc_chain_enumerator(Enumerator *enumerator, char *identifier);
 
-void *mgc_create_const_definition(TypeSpecifier *type,
+void mgc_create_const_definition(TypeSpecifier *type,
 								 char *identifier,
 								 Expression *initializer);
 

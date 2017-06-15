@@ -12,6 +12,7 @@
 #include "share.h"
 #include <string.h>
 #include <locale.h>
+#include "MGC.h"
 
 
 int main(int argc,char * argv[]){
@@ -28,5 +29,10 @@ int main(int argc,char * argv[]){
 	while (!feof(yyin)) {
 		yyparse();
 	}
+	
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	
+	
+
 	
 }

@@ -41,6 +41,7 @@ char *mgc_package_name_to_string(PackageName *package_name){
 		if (fragment->next) {
 			strcat(ret_val, ".");
 		}
+		fragment = fragment->next;
 	}
 	return ret_val;
 }

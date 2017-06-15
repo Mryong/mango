@@ -136,7 +136,7 @@ RenameList *mgc_chain_rename_list(RenameList *list, RenameList *add){
 static RequireList *add_default_package(RequireList *require_list){
 	RequireList *pos = require_list;
 	DVM_Boolean default_package_has_required = DVM_FALSE;
-	while (pos->next) {
+	while (pos) {
 		char *temp = mgc_package_name_to_string(pos->package_name);
 		if (dvm_equal_string(temp, DVM_NANGO_DEFAULT_PACKAGE)) {
 			default_package_has_required = DVM_TRUE;
@@ -314,14 +314,14 @@ TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base){
 }
 
 
-//Expression *mgc_alloc_expression(ExpressionKind kind){
-//	Expression *exp = malloc(sizeof(*exp));
-//	exp->kind = kind;
-//	exp->type = NULL;
-//	exp->line_number = mgc_get_current_compiler()->current_line_number;
-//	return exp;
-//
-//}
+Expression *mgc_alloc_expression(ExpressionKind kind){
+	Expression *exp = malloc(sizeof(*exp));
+	exp->kind = kind;
+	exp->type = NULL;
+	exp->line_number = mgc_get_current_compiler()->current_line_number;
+	return exp;
+
+}
 
 
 Expression *mgc_create_comma_expression(Expression *left, Expression *right){
@@ -456,8 +456,16 @@ Expression *mgc_create_class_array_creation(TypeSpecifier *type,
 	return exp;
 }
 
-Expression *mgc_create_this_expression(void);
-Expression *mgc_create_super_expression(void);
+Expression *mgc_create_this_expression(void){
+	Expression *exp = mgc_alloc_expression(THIS_EXPRESSION);
+	return exp;
+}
+
+
+Expression *mgc_create_super_expression(void){
+	Expression *exp = mgc_alloc_expression(SUPER_EXPRESSION);
+	return exp;
+}
 
 ArrayDimension *mgc_create_array_dimension(Expression *expression){
 	ArrayDimension *dim = malloc(sizeof(*dim));
@@ -735,6 +743,7 @@ void mgc_start_class_definition(ClassOrMemberModifierList *modifier,
 								DVM_ClassOrInterface class_or_interface,
 								char *identifier,
 								ExtendsList *extends){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
 	ClassDefinition *class_definition = malloc(sizeof(*class_definition));
 	class_definition->is_abstract = class_or_interface == DVM_INTERFACE_DEFINITION;
 	class_definition->access_modifier = DVM_FILE_MODIFIER;
@@ -747,56 +756,330 @@ void mgc_start_class_definition(ClassOrMemberModifierList *modifier,
 		class_definition->access_modifier = conv_access_modifier(modifier->access_modifier);
 	}
 	
+	class_definition->class_or_interface = class_or_interface;
+	class_definition->package_name = compiler->package_name;
+	class_definition->name = identifier;
+	class_definition->extends = extends;
+	class_definition->super_class = NULL;
+	class_definition->interface_list = NULL;
+	class_definition->member = NULL;
+	class_definition->next = NULL;
+	class_definition->line_number = compiler->current_line_number;
 	
+	assert(compiler->current_catch_clause == NULL);
 	
-
+	compiler->current_class_definition = class_definition;
 
  }
 
-void mgc_class_define(MemberDeclaration *member_list);
-ExtendsList *mgc_create_extends_list(char *identifier);
-ExtendsList *mgc_chain_extends_list(ExtendsList *list, char *add);
+void mgc_class_define(MemberDeclaration *member_list){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	ClassDefinition *current_class = compiler->current_class_definition;
+	assert(current_class != NULL);
+	if (compiler->class_definition_list == NULL) {
+		compiler->class_definition_list = current_class;
+	}else{
+		ClassDefinition *pos;
+		for (pos = compiler->class_definition_list; pos->next; pos = pos->next)
+			;
+		pos->next = current_class;
+	}
+	current_class->member = member_list;
+	compiler->current_class_definition = NULL;
+}
 
-ClassOrMemberModifierList mgc_create_class_or_member_modifier(ClassOrMemberModifierKind kind);
+
+ExtendsList *mgc_create_extends_list(char *identifier){
+	ExtendsList *extends = malloc(sizeof(*extends));
+	extends->identifer = identifier;
+	extends->class_definition = NULL;
+	extends->next = NULL;
+	return extends;
+}
+
+ExtendsList *mgc_chain_extends_list(ExtendsList *list, char *add){
+	ExtendsList *pos;
+	for (pos = list; pos->next; pos = pos->next)
+		;
+	
+	pos->next = mgc_create_extends_list(add);
+	return list;
+	
+
+}
+
+ClassOrMemberModifierList mgc_create_class_or_member_modifier(ClassOrMemberModifierKind kind){
+	ClassOrMemberModifierList ret;
+	ret.access_modifier = NOT_SPECIFIED_MODIFIER;
+	ret.id_abstract = NOT_SPECIFIED_MODIFIER;
+	ret.is_virtual = NOT_SPECIFIED_MODIFIER;
+	ret.is_override = NOT_SPECIFIED_MODIFIER;
+	
+	switch (kind) {
+		case ABSTRACT_MODIFIER:
+			ret.id_abstract = ABSTRACT_MODIFIER;
+			break;
+			
+		case PUBLIC_MODIFIER:
+			ret.access_modifier = PUBLIC_MODIFIER;
+			break;
+		
+		case PRIVATE_MODIFIER:
+			ret.access_modifier = PRIVATE_MODIFIER;
+			break;
+			
+		case VIRTUAL_MODIFIER:
+			ret.is_virtual = VIRTUAL_MODIFIER;
+			break;
+			
+		case OVERRIDE_MODIFIER:
+			ret.is_override = OVERRIDE_MODIFIER;
+			break;
+				
+	  default:
+			assert(0);
+			break;
+	}
+	
+	return ret;
+	
+}
+
+
 ClassOrMemberModifierList mgc_chain_class_or_member_modifier(ClassOrMemberModifierList list,
-															 ClassOrMemberModifierList add);
+															 ClassOrMemberModifierList add){
+	if (add.id_abstract != NOT_SPECIFIED_MODIFIER) {
+		assert(add.id_abstract == ABSTRACT_MODIFIER);
+		if (list.id_abstract != NOT_SPECIFIED_MODIFIER) {
+			mgc_compile_error(mgc_get_current_compiler()->current_line_number, ABSTRACT_MULTIPLE_SPECIFIED_ERR,MESSAGE_ARGUMENT_END);
+		}
+		list.id_abstract = ABSTRACT_MODIFIER;
+		
+	}else if(add.access_modifier != NOT_SPECIFIED_MODIFIER){
+		assert(add.access_modifier == PUBLIC_MODIFIER || add.access_modifier == PRIVATE_MODIFIER);
+		if (list.access_modifier != NOT_SPECIFIED_MODIFIER) {
+			mgc_compile_error(mgc_get_current_compiler()->current_line_number, ACCESS_MODIFIER_MULTIPLE_SPECIFIED_ERR,MESSAGE_ARGUMENT_END);
+		}
+		list.access_modifier = add.access_modifier;
+		
+	}else if (add.is_override != NOT_SPECIFIED_MODIFIER){
+		assert(add.is_override == OVERRIDE_MODIFIER);
+		if (list.is_override != NOT_SPECIFIED_MODIFIER) {
+			mgc_compile_error(mgc_get_current_compiler()->current_line_number, OVERRIDE_MODIFIER_MULTIPLE_SPECIFIED_ERR,MESSAGE_ARGUMENT_END);
+		}
+		list.is_override = OVERRIDE_MODIFIER;
+	
+	}else if (add.is_virtual != NOT_SPECIFIED_MODIFIER){
+		assert(add.is_virtual = VIRTUAL_MODIFIER);
+		if (list.is_virtual != NOT_SPECIFIED_MODIFIER) {
+			mgc_compile_error(mgc_get_current_compiler()->current_line_number, VIRTUAL_MODIFIER_MULTIPLE_SPECIFIED_ERR,MESSAGE_ARGUMENT_END);
+		}
+		list.is_virtual = VIRTUAL_MODIFIER;
+	}
+	
+	return list;
+}
+
 
 MemberDeclaration *mgc_chain_member_declaration_list(MemberDeclaration *list,
-													 MemberDeclaration *add);
+													 MemberDeclaration *add){
+	MemberDeclaration *pos;
+	for (pos = list; pos->next; pos = pos->next)
+		;
+	pos->next = add;
+	return list;
+}
+
+static MemberDeclaration *alloc_member_declaration(MemberKind kind, ClassOrMemberModifierList *modifier){
+	MemberDeclaration *member = malloc(sizeof(*member));
+	member->kind = kind;
+	if (modifier) {
+		member->access_modifier = conv_access_modifier(modifier->access_modifier);
+	}else{
+		member->access_modifier = DVM_FILE_MODIFIER;
+	}
+	member->line_number = mgc_get_current_compiler()->current_line_number;
+	member->next = NULL;
+	return member;
+}
 
 MemberDeclaration *mgc_create_method_member(ClassOrMemberModifierList *modifier,
 											FunctionDefinition *function_definition,
-											DVM_Boolean is_final);
+											DVM_Boolean is_constructor){
+	MemberDeclaration *member = alloc_member_declaration(METHOD_MEMBER, modifier);
+	member->u.method.is_constructor = is_constructor;
+	member->u.method.is_abstract = DVM_FALSE;
+	member->u.method.is_virtual = DVM_FALSE;
+	member->u.method.is_override = DVM_FALSE;
+	
+	if (modifier) {
+		if (modifier->id_abstract == ABSTRACT_MODIFIER) {
+			member->u.method.is_abstract = DVM_TRUE;
+		}
+		
+		if (modifier->is_virtual == VIRTUAL_MODIFIER) {
+			member->u.method.is_virtual = DVM_TRUE;
+		}
+		
+		if (modifier->is_override == OVERRIDE_MODIFIER) {
+			member->u.method.is_override = DVM_TRUE;
+		}
+	}
+	
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	if (compiler->current_class_definition->class_or_interface == DVM_INTERFACE_DEFINITION) {
+		member->u.method.is_virtual = DVM_TRUE;
+		member->u.method.is_abstract = DVM_TRUE;
+	}
+	
+	member->u.method.function_definition = function_definition;
+	if (member->u.method.is_abstract) {
+		if (function_definition->block) {
+			mgc_compile_error(compiler->current_line_number, ABSTRACT_METHOD_HAS_BODY_ERR,MESSAGE_ARGUMENT_END);
+		}
+	}else{
+		if (function_definition->block == NULL) {
+			mgc_compile_error(compiler->current_line_number, CONCRETE_METHOD_HAS_NO_BODY_ERR);
+		}
+	
+	}
+	
+	function_definition->class_definition = compiler->current_class_definition;
+	return member;
+	
+}
+
 FunctionDefinition *mgc_method_function_definition(TypeSpecifier *type,
 												   char *identifier,
 												   ParameterList *parameter,
 												   ExceptionList *thorws,
-												   Block *block);
+												   Block *block){
+	
+	FunctionDefinition *fd = mgc_create_function_definition(type, identifier, parameter, thorws, block);
+	return fd;
+}
+
+
 FunctionDefinition *mgc_constructor_function_definition(char *identifier,
 														ParameterList *parameter,
 														ExceptionList *throws,
-														Block *block);
+														Block *block){
+	TypeSpecifier *type = mgc_alloc_type_specifier(DVM_VOID_TYPE);
+	FunctionDefinition *fd =mgc_create_function_definition(type, identifier, parameter, throws, block);
+	return fd;
+
+}
 
 MemberDeclaration *mgc_create_field_member(ClassOrMemberModifierList *modifier,
 										   DVM_Boolean *is_final,
 										   TypeSpecifier *type,
 										   char *name,
-										   Expression *initializer);
+										   Expression *initializer){
+	MemberDeclaration *member = alloc_member_declaration(FIELD_MEMBER, modifier);
+	member->u.field.is_final = is_final;
+	member->u.field.type = type;
+	member->u.field.name = name;
+	member->u.field.initializer = initializer;
+	return member;
+}
 
-ExceptionList *mgc_create_thorws(char *identifer);
-ExceptionList *mgc_chain_exception_list(ExceptionList *list, char *identifier);
+ExceptionList *mgc_create_thorws(char *identifer){
+	ExceptionList *list = malloc(sizeof(*list));
+	list->exception = malloc(sizeof(ExceptionRef));
+	list->exception->identifer = identifer;
+	list->exception->class_definition  = NULL;
+	list->exception->line_number = mgc_get_current_compiler()->current_line_number;
+	list->next = NULL;
+	return list;
+}
+
+
+ExceptionList *mgc_chain_exception_list(ExceptionList *list, char *identifier){
+	ExceptionList *add = mgc_create_thorws(identifier);
+	if (!list) {
+		return add;
+	}
+	ExceptionList *pos;
+	for (pos = list; pos ->next; pos = pos->next)
+		;
+	pos->next = add;
+	return list;
+
+}
 
 void mgc_create_delegate_definition(TypeSpecifier *type, char *identifier,
-									ParameterList *parameter, ExceptionList *thorws);
+									ParameterList *parameter, ExceptionList *thorws){
+	DelegateDefinition *delegate = malloc(sizeof(*delegate));
+	delegate->type = type;
+	delegate->name = identifier;
+	delegate->parameter_list = parameter;
+	delegate->throws = thorws;
+	delegate->next = NULL;
+	
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	if (compiler->delegate_definition_list) {
+		DelegateDefinition *pos;
+		for (pos = compiler->delegate_definition_list; pos->next; pos = pos->next)
+			;
+		pos->next = delegate;
+	}else{
+		compiler->delegate_definition_list = delegate;
+	}
+}
 
 
-void mgc_create_enum_definition(char *identifier, Enumerator *enumerator);
-Enumerator *mgc_create_enumerator(char *identifier);
-Enumerator *mgc_chain_enumerator(Enumerator *enumerator, char *identifier);
+void mgc_create_enum_definition(char *identifier, Enumerator *enumerator){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	EnumDefinition *enum_definition = malloc(sizeof(*enum_definition));
+	enum_definition->package_name = compiler->package_name;
+	enum_definition->name = identifier;
+	enum_definition->next = NULL;
+	enum_definition->enumerator = enumerator;
+	
+	int value = 0;
+	for (Enumerator *enumerator_pos = enumerator; enumerator_pos->next; enumerator_pos = enumerator_pos->next) {
+		enumerator_pos->value = value;
+		value++;
+	}
+	
+	
+	if (compiler->enum_definition_list) {
+		EnumDefinition *pos;
+		for (pos = compiler->enum_definition_list; pos->next; pos = pos->next)
+			;
+		pos->next = enum_definition;
+	}else{
+		compiler->enum_definition_list = enum_definition;
+	}
+	
+}
 
-void *mgc_create_const_definition(TypeSpecifier *type,
+Enumerator *mgc_create_enumerator(char *identifier){
+	Enumerator *enumerator = malloc(sizeof(*enumerator));
+	enumerator->name = identifier;
+	enumerator->value = UNDEFINED_ENUMERATOR;
+	enumerator->next = NULL;
+	return enumerator;
+}
+
+Enumerator *mgc_chain_enumerator(Enumerator *enumerator, char *identifier){
+	Enumerator *add = mgc_create_enumerator(identifier);
+	if (!enumerator) {
+		return add;
+	}
+	Enumerator *pos;
+	for (pos = enumerator; pos->next; pos = pos->next)
+		;
+	pos->next = add;
+	return enumerator;
+}
+
+void mgc_create_const_definition(TypeSpecifier *type,
 								  char *identifier,
-								  Expression *initializer);
+								  Expression *initializer){
+
+
+}
 
 
 

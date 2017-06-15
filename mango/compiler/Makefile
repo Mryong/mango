@@ -26,7 +26,7 @@ lex.yy.o: lex.yy.c mangoc.h
 
 create.o: create.c mangoc.h
 string.o: string.c mangoc.h
-util.o: mangoc.h
+util.o: util.c mangoc.h
 
 
 clean:

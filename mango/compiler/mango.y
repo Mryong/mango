@@ -679,9 +679,9 @@ while_statement: label_opt WHILE LP expression RP block
                 ;
 
 
-for_statement: label_opt FOR LP expression_opt SEMICOLON expression_opt SEMICOLON expression_opt block
+for_statement: label_opt FOR LP expression_opt SEMICOLON expression_opt SEMICOLON expression_opt RP block
                 {
-                        $$ = mgc_create_for_statement($1, $4, $6, $8, $9);
+                        $$ = mgc_create_for_statement($1, $4, $6, $8, $10);
                 }
                 ;
 
