@@ -22,6 +22,10 @@ int main(int argc,char * argv[]){
 		exit(1);
 	}
 	
+
+	
+	
+	
 	extern FILE *yyin;
     yyin = fopen(argv[1], "r");
 	extern int yyparse();

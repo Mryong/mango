@@ -13,4 +13,7 @@ typedef struct MGC_Compiler_tag MGC_Compiler;
 
 MGC_Compiler *mgc_get_current_compiler(void);
 
+
+MGC_Compiler *mgc_create_compiler(void);
+
 #endif /* MGC_h */

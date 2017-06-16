@@ -18,7 +18,7 @@ clean:
 	-rm ${TARGET} ${TEST_TARGET}  ${OBJS} main.o
 
 
-main.o: main.c ../include/MEN.h
+main.o: main.c ../include/MEM.h
 
 
 

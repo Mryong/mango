@@ -19,7 +19,7 @@ all:
 	make clean; ${MAKE}
 
 
-main.o: main.c ../include/MEN.h
+main.o: main.c ../include/MEM.h
 ../compiler/conpiler.o:
 	cd ../compiler;$(MAKE)
 ../memory/men.o:
