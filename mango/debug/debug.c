@@ -56,7 +56,7 @@ static void assert_fun(FILE *fp, char *file, int line, char *expression, char *f
 }
 
 
-void DGB_assert_fun(char *fmt,...){
+void DGB_assert_func(char *fmt,...){
 	va_list ap;
 	va_start(ap, fmt);
 	initialize_debug_write_fp();

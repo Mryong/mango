@@ -25,7 +25,7 @@ typedef struct MEM_Controller_tag *MEM_Controller;
 typedef void (*MEM_ErrorHandler)(MEM_Controller, char *, int , char *);
 typedef struct MEM_Storage_tag *MEM_Storage;
 
-extern MEM_Controller men_default_controller;
+
 
 
 #ifdef MEM_CONTROLLER
@@ -34,6 +34,7 @@ extern MEM_Controller men_default_controller;
 #define MEM_CURRENT_CONTROLLER men_default_controller
 #endif
 
+extern MEM_Controller men_default_controller;
 
 void *MEM_malloc_func(MEM_Controller controller, char *filename, int line, size_t size);
 void *MEM_realloc_func(MEM_Controller controller, char *filename, int line,
