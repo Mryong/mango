@@ -16,11 +16,6 @@ typedef enum {
 }MEM_FailMode;
 
 
-#ifdef MEM_CONTROLLER
-#define MEM_CURRENT_CONTROLLER MEM_CONTROLLER
-#else
-#define MEM_CURRENT_CONTROLLER men_default_controller
-#endif
 
 
 
@@ -29,6 +24,16 @@ typedef enum {
 typedef struct MEM_Controller_tag *MEM_Controller;
 typedef void (*MEM_ErrorHandler)(MEM_Controller, char *, int , char *);
 typedef struct MEM_Storage_tag *MEM_Storage;
+
+extern MEM_Controller men_default_controller;
+
+
+#ifdef MEM_CONTROLLER
+#define MEM_CURRENT_CONTROLLER MEM_CONTROLLER
+#else
+#define MEM_CURRENT_CONTROLLER men_default_controller
+#endif
+
 
 void *MEM_malloc_func(MEM_Controller controller, char *filename, int line, size_t size);
 void *MEM_realloc_func(MEM_Controller controller, char *filename, int line,
@@ -45,7 +50,7 @@ MEM_Storage MEM_open_storage_func(MEM_Controller controller, char *filename, int
 void  *MEM_storage_malloc_fun(MEM_Controller controller, char *filename, int line, MEM_Storage storage, size_t size);
 void MEM_dispose_storage_fun(MEM_Controller controller, MEM_Storage storage);
 
-#define MEM_malloc(size) (MEM_realloc_func(MEM_CURRENT_CONTROLLER,__FILE__,__LINE__,size))
+#define MEM_malloc(size) (MEM_malloc_func(MEM_CURRENT_CONTROLLER,__FILE__,__LINE__,size))
 #define MEM_realloc(ptr,size) (MEM_realloc_func(MEM_CURRENT_CONTROLLER,__FILE__,__LINE__,ptr,size))
 #define MEM_strdup(str) (MEM_strdup_func(MEM_CURRENT_CONTROLLER,__FILE__,__LINE__,str))
 #define MEM_free(ptr) (MEM_free_func(MEM_CURRENT_CONTROLLER,ptr))
@@ -65,15 +70,5 @@ void MEM_dispose_storage_fun(MEM_Controller controller, MEM_Storage storage);
 #define MEM_check_block(ptr) ((void)0)
 #define MEM_check_all_blocks() ((void)0)
 #endif
-
-
-
-
-
-
-
-
-
-
 
 #endif /* MEN_h */

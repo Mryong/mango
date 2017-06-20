@@ -2,7 +2,7 @@ TARGET = mango
 CC = gcc
 CFLAGS = -c -g -DEBUG -Wall
 INCLUDES = -I/usr/local/include -I../include
-OBJS = main.o ../compiler/conpiler.o  ../memory/men.o ../share/share.o
+OBJS = main.o ../compiler/conpiler.o  ../memory/men.o ../share/share.o  ../debug/dbg.o
 
 ${TARGET}:${OBJS}
 	${CC} -o $@  ${OBJS} -ll
@@ -26,4 +26,7 @@ main.o: main.c ../include/MEM.h
 	cd ../memory;$(MAKE)
 ../share/share.o:
 	cd ../share;$(MAKE)
+../debug/dbg.o:
+	cd ../debug;${MAKE}
+
 

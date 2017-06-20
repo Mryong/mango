@@ -1,6 +1,5 @@
 TARGET = conpiler.o
 CC = gcc
-ENCODING_FLAG = -DSHIFT_JIS_SOURCE
 CFLAGS = -c -g -Wall -DDEBUG
 OBJS = lex.yy.o y.tab.o create.o string.o util.o
 
