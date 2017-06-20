@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "MEM.h"
+#include "DBG.h"
 
 static DBG_Controller st_current_controller;
 static char			*st_current_file_name;
