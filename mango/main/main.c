@@ -22,7 +22,8 @@ int main(int argc,char * argv[]){
 		exit(1);
 	}
 	
-
+	int i = -1/10;
+	int j = 1/10;
 	
 	
 	
