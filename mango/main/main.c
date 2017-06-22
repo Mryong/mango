@@ -21,9 +21,7 @@ int main(int argc,char * argv[]){
 		fprintf(stderr, "usage:%s filename arg1 arg2",argv[0]);
 		exit(1);
 	}
-	
-	int i = -1/10;
-	int j = 1/10;
+
 	
 	
 	

@@ -12,11 +12,20 @@
 #include "mangoc.h"
 #include "DVM.h"
 
+static MGC_Compiler *st_current_Compiler;
 
 
 MGC_Compiler *mgc_get_current_compiler(void){
-	static MGC_Compiler st_current_Compiler;
-	return &st_current_Compiler;
+	return st_current_Compiler;
+}
+
+void mgc_set_current_compiler(MGC_Compiler *compiler){
+	st_current_Compiler = compiler;
+}
+
+void *mgc_malloc(size_t size){
+	MGC_Compiler *compler = mgc_get_current_compiler();
+    return  MEM_storage_malloc(compler->compile_storage, size);
 }
 
 

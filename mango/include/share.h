@@ -11,6 +11,22 @@
 
 #include "DVM.h"
 
+
+#define ARRAY_METHOD_SIZE "size"
+#define ARRAY_METHOD_RESIZE "resize"
+#define ARRAY_METHOD_INSERT "insert"
+#define ARRAY_METHOD_REMOVE "remove"
+#define ARRAY_METHOD_ADD "add"
+#define ARRAY_PREFIX "array#"
+
+#define STRING_METHOD_LENGTH "length"
+#define STRING_METHOD_SUBSTR "substr"
+#define STRING_PREFIX "string#"
+
+#define ARRAY_SZIE(array) (sizeof(array) / sizeof((array)[0]))
+
+
+
 /* wchar.c */
 size_t dvm_mbstowcs_len(const char *src);
 void dvm_mbstowcs(const char *src,wchar_t *dest);

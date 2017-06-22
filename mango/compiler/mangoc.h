@@ -12,6 +12,7 @@
 #include "DVM.h"
 #include "DVM_code.h"
 #include "MGC.h"
+#include "MEM.h"
 
 #define MESSAGE_ARGUMENT_MAX (256)
 #define LINE_BUF_SIZE  (1024)
@@ -844,8 +845,9 @@ typedef struct {
 
 
 struct MGC_Compiler_tag{
+	MEM_Storage			compile_storage;
 	PackageName			*package_name;
-	SourceSuffix		*source_suffix;
+	SourceSuffix		source_suffix;
 	char				*path;
 	RequireList			*require_list;
 	RenameList			*rename_list;
@@ -870,8 +872,18 @@ struct MGC_Compiler_tag{
 	FunctionDefinition	*string_method;
 	Encoding			source_encoding;
 	
+	int					dvm_function_count;
+	DVM_Function		*dvm_function;
+	int					dvm_enum_count;
+	DVM_Enum			*dvm_enum;
+	int					dvm_constant_count;
+	DVM_Constant		*dvm_constant;
+	int					dvm_class_count;
+	DVM_Class			*dvm_class;
 	
 	
+	
+
 };
 
 
@@ -1086,6 +1098,8 @@ char *mgc_create_identifier(char *str);
 
 /* util.c */
 MGC_Compiler *mgc_get_current_compiler(void);
+void mgc_set_current_compiler(MGC_Compiler *compiler);
+void *mgc_malloc(size_t size);
 char *mgc_package_name_to_string(PackageName *package_name);
 DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2);
 FunctionDefinition *mgc_search_function(char *name);

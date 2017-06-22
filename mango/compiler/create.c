@@ -18,7 +18,7 @@
 
 
 DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl){
-	DeclarationList *add = malloc(sizeof(*add));
+	DeclarationList *add = mgc_malloc(sizeof(*add));
 	add->next = NULL;
 	if (list == NULL) {
 		return add;
@@ -32,7 +32,7 @@ DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl){
 	return list;
 }
 Declaration	*mgc_alloc_declaration(DVM_Boolean is_final,TypeSpecifier *type, char *identifier){
-	Declaration *declaration = malloc(sizeof(*declaration));
+	Declaration *declaration = mgc_malloc(sizeof(*declaration));
 	declaration->is_final = is_final;
 	declaration->type = type;
 	declaration->name = identifier;
@@ -41,7 +41,7 @@ Declaration	*mgc_alloc_declaration(DVM_Boolean is_final,TypeSpecifier *type, cha
 	
 }
 PackageName *mgc_create_package_name(char *identifier){
-	PackageName *package_name = malloc(sizeof(*package_name));
+	PackageName *package_name = mgc_malloc(sizeof(*package_name));
 	package_name->name = identifier;
 	package_name->next = NULL;
 	return package_name;
@@ -63,7 +63,7 @@ PackageName	*mgc_chain_package_name(PackageName *list, char *identifier){
 }
 
 RequireList *mgc_create_require_list(PackageName *package_name){
-	RequireList *list = malloc(sizeof(*list));
+	RequireList *list = mgc_malloc(sizeof(*list));
 	MGC_Compiler *current_compiler = mgc_get_current_compiler();
 	char *require_page_name_str = mgc_package_name_to_string(package_name);
 	char *current_package_name_str = mgc_package_name_to_string(current_compiler->package_name);
@@ -113,7 +113,7 @@ RenameList *mgc_create_rename_list(PackageName *package_name, char *identifer){
 	pre_tail->next = NULL;
 	
 	
-	RenameList *rename = malloc(sizeof(*rename));
+	RenameList *rename = mgc_malloc(sizeof(*rename));
 	rename->package_name = package_name;
 	rename->original_name = tail->name;
 	rename->renamed_name = identifer;
@@ -169,13 +169,29 @@ void mgc_set_require_and_rename_list(RequireList *require_list, RenameList *rena
 	compiler->rename_list = rename_list;
 }
 
+
+static void add_function_to_compiler(FunctionDefinition *fd){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	if (compiler->function_list) {
+		FunctionDefinition *pos;
+		for (pos = compiler->function_list; pos->next; pos = pos->next)
+			;
+		pos->next = fd;
+		
+	}else{
+		compiler->function_list = fd;
+	}
+	
+}
+
+
 FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *identifier,
 												   ParameterList *parameter_list, ExceptionList *exception_list,
 												   Block *block){
 	
 	MGC_Compiler *compiler = mgc_get_current_compiler();
 	
-	FunctionDefinition  *function_definition = malloc(sizeof(*function_definition));
+	FunctionDefinition  *function_definition = mgc_malloc(sizeof(*function_definition));
 	function_definition->type = type;
 	function_definition->name = identifier;
 	function_definition->parameter_list = parameter_list;
@@ -190,6 +206,7 @@ FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *id
 		block->type = FUNCTION_BLOCK;
 		block->parent.function_info.function = function_definition;
 	}
+	add_function_to_compiler(function_definition);
 	return function_definition;
 	
 }
@@ -209,7 +226,7 @@ void mgc_function_define(TypeSpecifier *type, char *identifier,
 }
 
 ParameterList *mgc_create_parameter(TypeSpecifier *type, char *identifier){
-	ParameterList *parameter = malloc(sizeof(*parameter));
+	ParameterList *parameter = mgc_malloc(sizeof(*parameter));
 	parameter->type = type;
 	parameter->name = identifier;
 	parameter->line_number = mgc_get_current_compiler()->current_line_number;
@@ -227,7 +244,7 @@ ParameterList *mgc_chain_parameter(ParameterList *list, TypeSpecifier *type, cha
 }
 
 ArgumentList *mgc_create_argument(Expression *expression){
-	ArgumentList *argument = malloc(sizeof(*argument));
+	ArgumentList *argument = mgc_malloc(sizeof(*argument));
 	argument->expression = expression;
 	argument->next = NULL;
 	return argument;
@@ -244,7 +261,7 @@ ArgumentList *mgc_chain_argument(ArgumentList *list,Expression *expression){
 }
 
 ExpressionList *mgc_create_expression_list(Expression *expression){
-	ExpressionList *expression_list = malloc(sizeof(*expression_list));
+	ExpressionList *expression_list = mgc_malloc(sizeof(*expression_list));
 	expression_list->expression = expression;
 	expression_list->next = NULL;
 	return expression_list;
@@ -261,7 +278,7 @@ ExpressionList *mgc_chain_expression_list(ExpressionList *list, Expression *expr
 
 
 StatementList *mgc_create_statement_list(Statement *statement){
-	StatementList *statement_list = malloc(sizeof(*statement_list));
+	StatementList *statement_list = mgc_malloc(sizeof(*statement_list));
 	statement_list->statement = statement;
 	statement_list->next = NULL;
 	return statement_list;
@@ -315,7 +332,7 @@ TypeSpecifier *mgc_create_array_type_specifier(TypeSpecifier *base){
 
 
 Expression *mgc_alloc_expression(ExpressionKind kind){
-	Expression *exp = malloc(sizeof(*exp));
+	Expression *exp = mgc_malloc(sizeof(*exp));
 	exp->kind = kind;
 	exp->type = NULL;
 	exp->line_number = mgc_get_current_compiler()->current_line_number;
@@ -468,7 +485,7 @@ Expression *mgc_create_super_expression(void){
 }
 
 ArrayDimension *mgc_create_array_dimension(Expression *expression){
-	ArrayDimension *dim = malloc(sizeof(*dim));
+	ArrayDimension *dim = mgc_malloc(sizeof(*dim));
 	dim->expression = expression;
 	dim->next = NULL;
 	return dim;
@@ -485,7 +502,7 @@ ArrayDimension *mgc_chain_array_dimension(ArrayDimension *list,
 }
 
 Statement *mgc_alloc_statement(StatementType type){
-	Statement *statement = malloc(sizeof(*statement));
+	Statement *statement = mgc_malloc(sizeof(*statement));
 	statement->type = type;
 	statement->line_number = mgc_get_current_compiler()->current_line_number;
 	return statement;
@@ -506,7 +523,7 @@ Statement *mgc_create_if_statement(Expression *condition,
 
 
 Elsif *mgc_create_elsif_statement(Expression *expr, Block *block){
-	Elsif *elsif = malloc(sizeof(*elsif));
+	Elsif *elsif = mgc_malloc(sizeof(*elsif));
 	elsif->condition = expr;
 	elsif->then_block = block;
 	elsif->next = NULL;
@@ -533,7 +550,7 @@ Statement *mgc_create_switch_statement(Expression *expr,
 }
 
 CaseList *mgc_create_one_case(ExpressionList *expression_list, Block *block){
-	CaseList *one_case = malloc(sizeof(*one_case));
+	CaseList *one_case = mgc_malloc(sizeof(*one_case));
 	one_case->expression_list= expression_list;
 	one_case->block = block;
 	one_case->next = NULL;
@@ -602,7 +619,7 @@ Statement *mgc_create_do_while_statement(char *label,
 
 
 Block *mgc_alloc_block(void){
-	Block *block = malloc(sizeof(*block));
+	Block *block = mgc_malloc(sizeof(*block));
 	block->type = UNDEFINED_BLOCK;
 	block->declaration_list = NULL;
 	block->out_block = NULL;
@@ -676,7 +693,7 @@ CatchClause *mgc_create_catch_clause(TypeSpecifier *type,
 	
 }
 CatchClause *mgc_start_catch_clause(void){
-	CatchClause *cc = malloc(sizeof(*cc));
+	CatchClause *cc = mgc_malloc(sizeof(*cc));
 	cc->line_number = mgc_get_current_compiler()->current_line_number;
 	cc->next = NULL;
 	return cc;
@@ -744,7 +761,7 @@ void mgc_start_class_definition(ClassOrMemberModifierList *modifier,
 								char *identifier,
 								ExtendsList *extends){
 	MGC_Compiler *compiler = mgc_get_current_compiler();
-	ClassDefinition *class_definition = malloc(sizeof(*class_definition));
+	ClassDefinition *class_definition = mgc_malloc(sizeof(*class_definition));
 	class_definition->is_abstract = class_or_interface == DVM_INTERFACE_DEFINITION;
 	class_definition->access_modifier = DVM_FILE_MODIFIER;
 	
@@ -790,7 +807,7 @@ void mgc_class_define(MemberDeclaration *member_list){
 
 
 ExtendsList *mgc_create_extends_list(char *identifier){
-	ExtendsList *extends = malloc(sizeof(*extends));
+	ExtendsList *extends = mgc_malloc(sizeof(*extends));
 	extends->identifer = identifier;
 	extends->class_definition = NULL;
 	extends->next = NULL;
@@ -891,7 +908,7 @@ MemberDeclaration *mgc_chain_member_declaration_list(MemberDeclaration *list,
 }
 
 static MemberDeclaration *alloc_member_declaration(MemberKind kind, ClassOrMemberModifierList *modifier){
-	MemberDeclaration *member = malloc(sizeof(*member));
+	MemberDeclaration *member = mgc_malloc(sizeof(*member));
 	member->kind = kind;
 	if (modifier) {
 		member->access_modifier = conv_access_modifier(modifier->access_modifier);
@@ -984,8 +1001,8 @@ MemberDeclaration *mgc_create_field_member(ClassOrMemberModifierList *modifier,
 }
 
 ExceptionList *mgc_create_thorws(char *identifer){
-	ExceptionList *list = malloc(sizeof(*list));
-	list->exception = malloc(sizeof(ExceptionRef));
+	ExceptionList *list = mgc_malloc(sizeof(*list));
+	list->exception = mgc_malloc(sizeof(ExceptionRef));
 	list->exception->identifer = identifer;
 	list->exception->class_definition  = NULL;
 	list->exception->line_number = mgc_get_current_compiler()->current_line_number;
@@ -1009,7 +1026,7 @@ ExceptionList *mgc_chain_exception_list(ExceptionList *list, char *identifier){
 
 void mgc_create_delegate_definition(TypeSpecifier *type, char *identifier,
 									ParameterList *parameter, ExceptionList *thorws){
-	DelegateDefinition *delegate = malloc(sizeof(*delegate));
+	DelegateDefinition *delegate = mgc_malloc(sizeof(*delegate));
 	delegate->type = type;
 	delegate->name = identifier;
 	delegate->parameter_list = parameter;
@@ -1030,7 +1047,7 @@ void mgc_create_delegate_definition(TypeSpecifier *type, char *identifier,
 
 void mgc_create_enum_definition(char *identifier, Enumerator *enumerator){
 	MGC_Compiler *compiler = mgc_get_current_compiler();
-	EnumDefinition *enum_definition = malloc(sizeof(*enum_definition));
+	EnumDefinition *enum_definition = mgc_malloc(sizeof(*enum_definition));
 	enum_definition->package_name = compiler->package_name;
 	enum_definition->name = identifier;
 	enum_definition->next = NULL;
@@ -1055,7 +1072,7 @@ void mgc_create_enum_definition(char *identifier, Enumerator *enumerator){
 }
 
 Enumerator *mgc_create_enumerator(char *identifier){
-	Enumerator *enumerator = malloc(sizeof(*enumerator));
+	Enumerator *enumerator = mgc_malloc(sizeof(*enumerator));
 	enumerator->name = identifier;
 	enumerator->value = UNDEFINED_ENUMERATOR;
 	enumerator->next = NULL;
