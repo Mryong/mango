@@ -11,6 +11,7 @@
 
 
 typedef struct DVM_Executable_tag DVM_Executable;
+typedef struct DVM_ExecutableList_tag DVM_ExecutableList;
 
 
 typedef enum {

@@ -785,7 +785,7 @@ typedef enum {
 }InputMode;
 
 typedef struct {
-	InputMode	*mode;
+	InputMode	mode;
 	union {
 		struct {
 			FILE	*fp;
@@ -1095,6 +1095,11 @@ DVM_Char *mgc_close_string_literal(void);
 int mgc_close_character_literal(void);
 char *mgc_create_identifier(char *str);
 
+/* fix_tree.c */
+void mgc_fix_tree(MGC_Compiler *compiler);
+
+/* generate.c */
+DVM_Executable *mgc_generate(MGC_Compiler *compiler);
 
 /* util.c */
 MGC_Compiler *mgc_get_current_compiler(void);

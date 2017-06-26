@@ -7,3 +7,12 @@
 //
 
 #include <stdio.h>
+#include "DVM.h"
+#include "DVM_code.h"
+#include "mangoc.h"
+
+DVM_Executable *mgc_generate(MGC_Compiler *compiler){
+	DVM_Executable *exe = NULL;
+	return exe;
+}
+

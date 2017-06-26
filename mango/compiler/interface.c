@@ -12,6 +12,10 @@
 #include "DBG.h"
 #include "MGC.h"
 #include "share.h"
+#include <string.h>
+#include "DBG.h"
+#include "DVM.h"
+#include "DVM_code.h"
 
 
 static CompilerList *st_compiler_list = NULL;
@@ -134,5 +138,242 @@ MGC_Compiler *mgc_create_compiler(void){
 	mgc_set_current_compiler(compiler_backup);
 	return compiler;
 }
+
+
+static CompilerList *add_compiler_to_list(CompilerList *list, MGC_Compiler *compiler){
+	CompilerList *new_item = MEM_malloc(sizeof(*new_item));
+	new_item->compiler = compiler;
+	new_item->next = NULL;
+	CompilerList *pos = list;
+	for (; pos->next; pos = pos->next)
+		;
+	pos->next = new_item;
+	return list;
+	
+}
+
+
+static MGC_Compiler *search_compiler(CompilerList *list, PackageName *package_name){
+	for (CompilerList *pos = list; pos; pos = pos->next) {
+		if (mgc_equal_package_name(pos->compiler->package_name, package_name)) {
+			return pos->compiler;
+		}
+	}
+	
+	return NULL;
+}
+
+static DVM_Boolean search_buildin_source(char *package_name, SourceSuffix suffix,SourceInput *input){
+	for (int i = 0; mgc_buildin_script[i].source_string != NULL; i++) {
+		if (mgc_buildin_script[i].suffix == suffix && dvm_equal_string(mgc_buildin_script[i].package_name, package_name)) {
+			input->mode = STRING_INPUT_MODE;
+			input->u.string.lines = mgc_buildin_script[i].source_string;
+			return DVM_TRUE;
+		}
+	}
+	return DVM_FALSE;
+}
+
+
+static void make_search_path(int line_number, PackageName *package_name, char *buf){
+	size_t len = 0;
+	size_t suffix_len = sizeof(MANGO_REQUIRE_SUFFIX);
+	buf[0] = '\0';
+	for (PackageName *pos = package_name; pos; pos = pos->next) {
+		len += strlen(pos->name);
+		if (len > FILENAME_MAX - (2 + suffix_len)) {
+			mgc_compile_error(line_number, PACKAGE_NAME_TOO_LONG_ERR,MESSAGE_ARGUMENT_END);
+		}
+		strcat(buf, pos->name);
+		if (pos->next) {
+			buf[strlen(buf)] = FILE_SEPARATOR;
+			buf[strlen(buf)] = '\0';
+			len++;
+		}
+		
+	}
+	strcat(buf, MANGO_REQUIRE_SUFFIX);
+}
+
+
+static void make_search_path_impl(char *package_name,char *buf){
+	size_t suffix_len = strlen(MANGO_IMPLEMENTATION_FUFFIX);
+	size_t package_len = strlen(package_name);
+	DBG_assert(suffix_len + package_len < FILENAME_MAX - (2 + suffix_len), "package name is too long(%s)", package_name);
+	size_t i;
+	for (i = 0; package_name[i] != '\0'; i++) {
+		if (package_name[i] == '.') {
+			buf[i] = FILE_SEPARATOR;
+		}else{
+			buf[i] = package_name[i];
+		}
+	}
+	buf[i] = '\0';
+	strcat(buf, MANGO_IMPLEMENTATION_FUFFIX);
+
+}
+
+static void get_requre_input(RequireList *req, char *found_path, SourceInput *source_input){
+	char search_file[FILENAME_MAX];
+	char *package_name = mgc_package_name_to_string(req->package_name);
+	if (search_buildin_source(package_name, MGH_SOURCE, source_input)) {
+		MEM_free(package_name);
+		found_path[0] = '\0';
+		return;
+	}
+	MEM_free(package_name);
+	
+	char *search_path = getenv("MANGO_REQUIRE_SEARCH_PATH");
+	if (search_path == NULL) {
+		search_path = ".";
+	}
+	
+	make_search_path(req->line_number, req->package_name, search_file);
+	FILE *fp;
+	SearchFileStatus status = dvm_search_file(search_path, search_file, found_path, &fp);
+	
+	if (status != SEARCH_FILE_SUCCESS) {
+		if (status == SEARCH_FILE_NOT_FOUND) {
+			mgc_compile_error(req->line_number, REQUIRE_FILE_NOT_FOUND_ERR,STRING_MESSAGE_ARGUMENT,"file",search_file,MESSAGE_ARGUMENT_END);
+		}else{
+			mgc_compile_error(req->line_number, REQUIRE_FILE_ERR,INT_MESSAGE_ARGUMENT,"status",status,MESSAGE_ARGUMENT_END);
+		}
+		
+	}
+	source_input->mode = FILE_INPUT_MODE;
+	source_input->u.file.fp = fp;
+
+}
+
+
+static DVM_Boolean add_exe_to_list(DVM_Executable *exe, DVM_ExecutableList *list){
+	DVM_ExecutableItem *item = MEM_malloc(sizeof(*item));
+	item->executable = exe;
+	item->next = NULL;
+	
+	if (list->list == NULL) {
+		list->list = item;
+		return DVM_TRUE;
+	}
+	DVM_ExecutableItem *tail = NULL;
+	DVM_ExecutableItem *pos = list->list;
+	for (; pos; pos = pos->next) {
+		if (dvm_equal_package_name(pos->executable->package_name, exe->package_name)
+			&& pos->executable->is_required == exe->is_required) {
+			return DVM_FALSE;
+		}
+		tail = pos;
+	}
+	
+	tail->next = item;
+	return DVM_TRUE;
+}
+
+
+static void set_path_to_compiler(MGC_Compiler *compiler, char *path){
+	compiler->path = MEM_storage_malloc(compiler->compile_storage, strlen(path) +1 );
+	strcpy(compiler->path, path);
+}
+
+
+static DVM_Executable *do_compiler(MGC_Compiler *compiler, DVM_ExecutableList *list, char *path, DVM_Boolean is_require){
+	extern FILE *yyin;
+	extern int yyparse(void);
+	
+	MGC_Compiler *compiler_backup = mgc_get_current_compiler();
+	mgc_set_current_compiler(compiler);
+	if (yyparse()) {
+		fprintf(stderr,"Error! Error! Error!\n");
+		exit(1);
+	}
+	
+	
+	char found_path[FILENAME_MAX];
+	SourceInput source_input;
+	for (RequireList *req_pos = compiler->require_list; req_pos; req_pos = req_pos->next) {
+		 MGC_Compiler *req_compiler = search_compiler(st_compiler_list, req_pos->package_name);
+		if (req_compiler) {
+			compiler->required_list = add_compiler_to_list(compiler->required_list, req_compiler);
+			continue;
+		}
+		req_compiler = mgc_create_compiler();
+		req_compiler->package_name = req_pos->package_name;
+		req_compiler->source_suffix = MGH_SOURCE;
+		
+		compiler->required_list = add_compiler_to_list(compiler->required_list, req_compiler);
+		st_compiler_list = add_compiler_to_list(st_compiler_list, req_compiler);
+		get_requre_input(req_pos, found_path, &source_input);
+		set_path_to_compiler(req_compiler, found_path);
+		req_compiler->input_mode = source_input.mode;
+		if (req_compiler->input_mode == FILE_INPUT_MODE) {
+			yyin = source_input.u.file.fp;
+		}else{
+			mgc_set_source_string(source_input.u.string.lines);
+		}
+		do_compiler(req_compiler, list, found_path, DVM_TRUE);
+		
+	}
+	
+	mgc_fix_tree(compiler);
+	DVM_Executable *exe = mgc_generate(compiler);
+	
+	if (path) {
+		exe->path = MEM_strdup(path);
+	}else{
+		exe->path = NULL;
+	}
+	
+	exe->is_required = is_require;
+	
+	if (add_exe_to_list(exe, list)) {
+		
+	}
+	
+	mgc_set_current_compiler(compiler_backup);
+	return exe;
+}
+
+static void dispose_compiler_list(void){
+	CompilerList *temp;
+	while (st_compiler_list) {
+		temp = st_compiler_list->next;
+		MEM_free(st_compiler_list);
+		st_compiler_list = temp;
+	}
+}
+
+DVM_ExecutableList *mgc_compile(MGC_Compiler *compiler, FILE *fp, char *path){
+	extern FILE *yyin;
+	DBG_assert(st_compiler_list == NULL, "st_compiler_list != NULL (%p)",st_compiler_list);
+	set_path_to_compiler(compiler, path);
+	compiler->input_mode = FILE_INPUT_MODE;
+	
+	yyin = fp;
+	DVM_ExecutableList *list = MEM_malloc(sizeof(*list));
+	list->list = NULL;
+	
+	DVM_Executable *exe = do_compiler(compiler, list, NULL, DVM_FALSE);
+	exe->path = MEM_strdup(path);
+	list->top_level = exe;
+	
+	dispose_compiler_list();
+	mgc_rest_string_literal_buffer();
+	
+	return  list;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

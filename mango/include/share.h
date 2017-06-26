@@ -12,6 +12,26 @@
 #include "DVM.h"
 
 
+typedef enum {
+	SEARCH_FILE_SUCCESS,
+	SEARCH_FILE_NOT_FOUND,
+	SEARCH_FILE_PATH_TOO_LONG
+}SearchFileStatus;
+
+#ifdef MGC_WINDOWS
+#define FILE_SEPARATOR      ('\\')
+#define FILE_PATH_SEPARATOR (';')
+#else
+#define FILE_SEPARATOR      ('/')
+#define FILE_PATH_SEPARATOR (':')
+#endif
+
+
+
+#define MANGO_REQUIRE_SUFFIX  (".mgh")
+#define MANGO_IMPLEMENTATION_FUFFIX (".mgm")
+
+
 #define ARRAY_METHOD_SIZE "size"
 #define ARRAY_METHOD_RESIZE "resize"
 #define ARRAY_METHOD_INSERT "insert"
@@ -41,6 +61,9 @@ DVM_Boolean dvm_idwdigit(wchar_t ch);
 
 
 /* util.c */
+SearchFileStatus dvm_search_file(char *search_path, char *search_file,
+								 char *found_path, FILE **fp);
 DVM_Boolean dvm_equal_string(char *str1, char *str2);
+DVM_Boolean dvm_equal_package_name(char *p1, char *p2);
 void dvm_strncopy(char *dest, char *src, size_t buf_size);
 #endif /* share_h */

@@ -33,14 +33,14 @@ extern DBG_Controller DBG_CURRENT_CONTROLLER;
 #define DBG_create_controller() (DBG_create_controller_func())
 #define DBG_set_debug_level(level) (DBG_set_debug_level_func(DBG_CURRENT_CONTROLLER,level))
 #define DBG_set_debug_write_fp(fp) (DBG_set_debug_write_fp_func(DBG_CURRENT_CONTROLLER,fp))
-#define DGB_assert(expression,fmt,...) ((expression) ? (void)0 :\
+#define DBG_assert(expression,fmt,...) ((expression) ? (void)0 :\
 (\
 (DBG_set(DBG_CURRENT_CONTROLLER,__FILE__,__LINE__)),\
 (DBG_set_expression(#expression)),\
 (DGB_assert_func(fmt,##__VA_ARGS__))\
 ))
 #define DBG_panic(arg) ((DBG_set(DBG_CURRENT_CONTROLLER,__FILE__,__LINE__)),(DBG_panic_func arg))
-#define DGB_debug_write(fmt,...) ((DBG_set(DBG_CURRENT_CONTROLLER,__FILE__,__LINE__)),(DGB_debug_write_func(fmt,##__VA_ARGS__)))
+#define DBG_debug_write(fmt,...) ((DBG_set(DBG_CURRENT_CONTROLLER,__FILE__,__LINE__)),(DGB_debug_write_func(fmt,##__VA_ARGS__)))
 
 
 #endif /* DBG_NO_DEBUG */

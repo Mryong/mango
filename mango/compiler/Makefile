@@ -1,7 +1,7 @@
 TARGET = conpiler.o
 CC = gcc
 CFLAGS = -c -g -Wall -DDEBUG
-OBJS = lex.yy.o y.tab.o create.o string.o util.o
+OBJS = lex.yy.o y.tab.o create.o string.o util.o  fix_tree.o generate.o
 
 INCLUDES = -I ../include
 
@@ -26,6 +26,8 @@ lex.yy.o: lex.yy.c mangoc.h
 create.o: create.c mangoc.h
 string.o: string.c mangoc.h
 util.o: util.c mangoc.h
+fix_tree.o: fix_tree.c mangoc.h ../include/DVM.h
+generate.o: generate.c mangoc.h ../include/DVM.h
 
 
 clean:

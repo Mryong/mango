@@ -7,3 +7,8 @@
 //
 
 #include <stdio.h>
+#include "mangoc.h"
+
+void mgc_fix_tree(MGC_Compiler *compiler){
+
+}
