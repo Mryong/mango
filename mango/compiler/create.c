@@ -164,7 +164,7 @@ void mgc_set_require_and_rename_list(RequireList *require_list, RenameList *rena
 	if (!dvm_equal_string(current_package_name_str, DVM_NANGO_DEFAULT_PACKAGE)) {
 		require_list = add_default_package(require_list);
 	}
-	free(current_package_name_str);
+	MEM_free(current_package_name_str);
 	compiler->require_list = require_list;
 	compiler->rename_list = rename_list;
 }

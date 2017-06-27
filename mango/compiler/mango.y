@@ -157,7 +157,8 @@ rename_declaration: RENAME package_name IDENTIFIER SEMICOLON
                 ;
 
 
-definition_or_statement: function_definition
+definition_or_statement: /* empty */
+                | function_definition
                 | class_definition
                 | statement
                 {

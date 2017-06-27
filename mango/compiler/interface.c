@@ -144,6 +144,11 @@ static CompilerList *add_compiler_to_list(CompilerList *list, MGC_Compiler *comp
 	CompilerList *new_item = MEM_malloc(sizeof(*new_item));
 	new_item->compiler = compiler;
 	new_item->next = NULL;
+	
+	if (list == NULL) {
+		return new_item;
+	}
+	
 	CompilerList *pos = list;
 	for (; pos->next; pos = pos->next)
 		;
@@ -363,6 +368,151 @@ DVM_ExecutableList *mgc_compile(MGC_Compiler *compiler, FILE *fp, char *path){
 }
 
 
+PackageName *create_one_package_name(MGC_Compiler *compiler, char *str, size_t start_idx, size_t end_idx){
+	MEM_Storage storage = compiler->compile_storage;
+	PackageName *pn = MEM_storage_malloc(storage, sizeof(*pn));
+	pn->name = MEM_storage_malloc(storage, end_idx - start_idx + 1);
+	
+	size_t i = 0;
+	for (; i < end_idx - start_idx; i++) {
+		pn->name[i] = str[start_idx + i];
+	}
+	pn->name[i] = '\0';
+	pn->name = NULL;
+	return pn;
+}
+
+
+static PackageName *string_to_package_name(MGC_Compiler *compiler, char *str){
+	PackageName *top = NULL;
+	PackageName *tail = NULL;
+	
+	size_t start_idx = 0;
+	for (size_t i = 0; ; i++) {
+		char pos = str[i];
+		if (pos == '.' || pos == '\0') {
+			PackageName *pn = create_one_package_name(compiler, str, start_idx, i);
+			if (top) {
+				tail->next = pn;
+			}else{
+				top = pn;
+			}
+			
+			tail = pn;
+		}
+		if (pos == '\0') {
+			break;
+		}
+		
+	}
+	return top;
+}
+
+
+
+
+
+SearchFileStatus get_dynamic_load_input(char *package_name, char *found_path, char *search_file, SourceInput *source_input){
+	if (search_buildin_source(package_name, MGM_SOURCE, source_input)) {
+		found_path[0] = '\0';
+		return SEARCH_FILE_SUCCESS;
+	}
+	char *search_path = getenv("MANGO_REQUIRE_SEARCH_PATH");
+	if (search_path == NULL) {
+		search_path = ".";
+	}
+	
+	make_search_path_impl(package_name, search_file);
+	FILE *fp;
+	SearchFileStatus status = dvm_search_file(search_path, search_file, found_path, &fp);
+	
+	if (status != SEARCH_FILE_SUCCESS) {
+		return status;
+	}
+	
+	source_input->mode = FILE_INPUT_MODE;
+	source_input->u.file.fp = fp;
+	return SEARCH_FILE_SUCCESS;
+
+}
+
+SearchFileStatus mgc_dynamic_compile(MGC_Compiler *compiler, char *package_name,
+									 DVM_ExecutableList *list, DVM_ExecutableItem **add_top,
+									 char *search_file){
+	char found_path[FILENAME_MAX];
+	SourceInput source_input;
+	SearchFileStatus status = get_dynamic_load_input(package_name, found_path, search_file, &source_input);
+	if (status != SEARCH_FILE_SUCCESS) {
+		return status;
+	}
+	
+	DBG_assert(st_compiler_list == NULL, "st_compiler_list != NULL (%p)",st_compiler_list);
+	
+	DVM_ExecutableItem *tail = NULL;
+	for (tail = list->list; tail->next; tail = tail->next)
+		;
+	compiler->package_name = string_to_package_name(compiler, package_name);
+	set_path_to_compiler(compiler, found_path);
+	compiler->input_mode = source_input.mode;
+	
+	if (source_input.mode == FILE_INPUT_MODE) {
+		extern FILE *yyin;
+		yyin = source_input.u.file.fp;
+	}else{
+		mgc_set_source_string(source_input.u.string.lines);
+	}
+	
+	do_compiler(compiler, list, found_path, DVM_FALSE);
+	
+	dispose_compiler_list();
+	mgc_rest_string_literal_buffer();
+	
+	*add_top = tail->next;
+	return SEARCH_FILE_SUCCESS;
+		
+	
+}
+
+
+static CompilerList *traversal_compiler(CompilerList *list, MGC_Compiler *compiler){
+	CompilerList *list_pos;
+	for (list_pos = list; list_pos; list_pos = list_pos->next) {
+		if (list_pos->compiler == compiler) {
+			break;
+		}
+	}
+	
+	if (list_pos == NULL) {
+		list = add_compiler_to_list(list, compiler);
+	}
+	
+	for (CompilerList *pos = compiler->required_list; pos; pos = pos->next) {
+		traversal_compiler(list, pos->compiler);
+	}
+	
+	return list;
+}
+
+void mgc_dispose_compiler(MGC_Compiler *compiler){
+	CompilerList *list = NULL;
+	list = traversal_compiler(list, compiler);
+	CompilerList *temp = NULL;
+	for (CompilerList *pos = list; pos;) {
+		for (FunctionDefinition *fun_pos = pos->compiler->function_list; fun_pos; fun_pos = fun_pos->next) {
+			MEM_free(fun_pos->local_variable);
+		}
+		while (pos->compiler->required_list) {
+			temp = pos->compiler->required_list;
+			pos->compiler->required_list = temp->next;
+			MEM_free(temp);
+		}
+		MEM_dispose_storage(pos->compiler->compile_storage);
+		temp = pos->next;
+		MEM_free(pos);
+		pos = temp;
+	}
+	
+}
 
 
 

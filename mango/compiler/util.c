@@ -42,7 +42,7 @@ char *mgc_package_name_to_string(PackageName *package_name){
 		fragment = fragment->next;
 	}
 	
-	char *ret_val = malloc(len);
+	char *ret_val = MEM_malloc(len);
 	fragment = package_name;
 	ret_val[0] = '\0';
 	while (fragment != NULL) {
@@ -382,7 +382,7 @@ MemberDeclaration *mgc_search_member(ClassDefinition *class_def,char *member_nam
 }
 
 TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type){
-	TypeSpecifier *ts = malloc(sizeof(*ts));
+	TypeSpecifier *ts = mgc_malloc(sizeof(*ts));
 	ts->base_type = type;
 	ts->line_number = 0;
 	ts->derive = NULL;
@@ -394,7 +394,7 @@ TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type){
 }
 
 TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag){
-	TypeDerive *type_derive = malloc(sizeof(*type_derive));
+	TypeDerive *type_derive = mgc_malloc(sizeof(*type_derive));
 	type_derive->tag = derive_tag;
 	type_derive->next = NULL;
 	return type_derive;

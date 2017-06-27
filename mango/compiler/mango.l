@@ -44,8 +44,11 @@ static yy_size_t string_yyinput(char *buf, yy_size_t max_size){
 	while (st_source_string[st_current_line][st_current_index] == '\0'){
 		st_current_line++;
 		st_current_index = 0;
+		if (st_source_string[st_current_line] == NULL){
+			return 0;
+		}
 	}
-	if (st_source_string[st_current_line]){
+	if (st_source_string[st_current_line] == NULL){
 		return 0;
 	}
 

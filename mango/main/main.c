@@ -26,14 +26,10 @@ int main(int argc,char * argv[]){
 	
 	
 	extern FILE *yyin;
-    yyin = fopen(argv[1], "r");
-	extern int yyparse();
-	
-	while (!feof(yyin)) {
-		yyparse();
-	}
-	
-	MGC_Compiler *compiler = mgc_get_current_compiler();
+    FILE *fp = fopen(argv[1], "r");
+
+	MGC_Compiler *compler = mgc_create_compiler();
+	mgc_compile(compler, fp, argv[1]);
 	
 	
 

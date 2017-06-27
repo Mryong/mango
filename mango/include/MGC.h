@@ -15,5 +15,6 @@ MGC_Compiler *mgc_get_current_compiler(void);
 
 
 MGC_Compiler *mgc_create_compiler(void);
+DVM_ExecutableList *mgc_compile(MGC_Compiler *compiler, FILE *fp, char *path);
 
 #endif /* MGC_h */

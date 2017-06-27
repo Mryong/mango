@@ -10,9 +10,10 @@
 #include "DVM.h"
 #include "DVM_code.h"
 #include "mangoc.h"
+#include <stdlib.h>
 
 DVM_Executable *mgc_generate(MGC_Compiler *compiler){
-	DVM_Executable *exe = NULL;
+	DVM_Executable *exe = malloc(sizeof(*exe));
 	return exe;
 }
 
