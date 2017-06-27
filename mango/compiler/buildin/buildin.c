@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include "../mangoc.h"
 
-char *st_mango_lang_mgh_text[] = {"", NULL};
-char *st_mango_lang_mgc_text[] = {"", NULL};
+char *st_mango_lang_mgh_text[] = {"int xx;", NULL};
+char *st_mango_lang_mgc_text[] = {"int yy;", NULL};
 char *st_mango_math_mgh_text[] = {"", NULL};
 
 BuiltinScript mgc_buildin_script[] = {

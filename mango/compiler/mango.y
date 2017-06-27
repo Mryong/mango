@@ -157,8 +157,7 @@ rename_declaration: RENAME package_name IDENTIFIER SEMICOLON
                 ;
 
 
-definition_or_statement: /* empty */
-                | function_definition
+definition_or_statement:  function_definition
                 | class_definition
                 | statement
                 {
@@ -813,15 +812,15 @@ class_definition: class_or_interface IDENTIFIER extends LC
                 }
                 member_declaration_list RC
                 {
-                        mgc_class_define($1);
+                        mgc_class_define($6);
                 }
                 | class_or_member_modifier_list class_or_interface IDENTIFIER extends LC
                 {
-                        mgc_start_class_definition($1,$1,$2,$3);    
+                        mgc_start_class_definition(&$1,$2,$3,$4);
                 }
                 member_declaration_list RC
                 {
-                        mgc_class_define($1);
+                        mgc_class_define($7);
                 }
                 | class_or_interface IDENTIFIER extends LC
                 {
@@ -833,7 +832,7 @@ class_definition: class_or_interface IDENTIFIER extends LC
                 }
                 | class_or_member_modifier_list class_or_interface IDENTIFIER extends LC
                 {
-                        mgc_start_class_definition($1,$1,$2,$3);    
+                        mgc_start_class_definition(&$1,$2,$3,$4);
                 }
                 RC
                 {
@@ -843,7 +842,7 @@ class_definition: class_or_interface IDENTIFIER extends LC
 
 
 class_or_member_modifier_list: class_or_member_modifier
-                class_or_member_modifier_list class_or_member_modifier
+                | class_or_member_modifier_list class_or_member_modifier
                 {
                         $$ = mgc_chain_class_or_member_modifier($1,$2);
                 }
@@ -852,7 +851,7 @@ class_or_member_modifier_list: class_or_member_modifier
 class_or_member_modifier: access_modifier
                  | VIRTUAL_T
                  {
-                        $$ = mgc_create_class_or_member_modifier(VITRAL_MODIFIER);
+                        $$ = mgc_create_class_or_member_modifier(VIRTUAL_MODIFIER);
                  }
                  | OVERRIED_T
                  {
