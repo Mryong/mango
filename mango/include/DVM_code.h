@@ -208,9 +208,9 @@ typedef struct {
 
 typedef struct {
 	char	*package_name;
-	char	name;
+	char	*name;
 	DVM_Boolean	is_defined;
-	int			enumerator_count;
+	size_t			enumerator_count;
 	char		**enumerator;
 }DVM_Enum;
 

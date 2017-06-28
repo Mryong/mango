@@ -32,6 +32,9 @@ typedef enum {
 #define MANGO_IMPLEMENTATION_FUFFIX (".mgm")
 
 
+#define EXCEPTION_CLASS_NAME ("Exception")
+
+
 #define ARRAY_METHOD_SIZE "size"
 #define ARRAY_METHOD_RESIZE "resize"
 #define ARRAY_METHOD_INSERT "insert"
@@ -66,4 +69,5 @@ SearchFileStatus dvm_search_file(char *search_path, char *search_file,
 DVM_Boolean dvm_equal_string(char *str1, char *str2);
 DVM_Boolean dvm_equal_package_name(char *p1, char *p2);
 void dvm_strncopy(char *dest, char *src, size_t buf_size);
+char *dvm_create_method_function_name(char *class_name, char *method_name);
 #endif /* share_h */

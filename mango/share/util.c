@@ -11,6 +11,7 @@
 #include <string.h>
 #include "DVM.h"
 #include "share.h"
+#include "MEM.h"
 
 
 SearchFileStatus dvm_search_file(char *search_path, char *search_file,
@@ -43,6 +44,15 @@ void dvm_strncopy(char *dest, char *src, size_t buf_size){
 		dest[i] = src[i];
 	}
 	dest[i] = '\0';
+}
+
+char *dvm_create_method_function_name(char *class_name, char *method_name){
+	size_t class_name_len = strlen(class_name);
+	size_t method_name_len = strlen(method_name);
+	size_t ret_len = class_name_len + method_name_len + 2;
+	char *ret_val = MEM_malloc(ret_len);
+	sprintf(ret_val, "%s#%s",class_name,method_name);
+	return ret_val;
 }
 
 

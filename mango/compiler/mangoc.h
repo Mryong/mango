@@ -20,7 +20,7 @@
 
 #define UNDEFINED_LABEL (-1)
 #define UNDEFINED_ENUMERATOR (-1)
-#define UNDEFINED_METHOD_INDEX (-1)
+#define ABSTRACT_METHOD_INDEX (-1)
 
 typedef enum {
 	INT_MESSAGE_ARGUMENT = 1,
