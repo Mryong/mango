@@ -157,7 +157,8 @@ rename_declaration: RENAME package_name IDENTIFIER SEMICOLON
                 ;
 
 
-definition_or_statement:  function_definition
+definition_or_statement: /* empty */
+				| function_definition
                 | class_definition
                 | statement
                 {
@@ -890,14 +891,14 @@ extends_list: IDENTIFIER
                 {
                         $$ = mgc_create_extends_list($1);
                 }
-                | extends_list IDENTIFIER
+                | extends_list COMMA IDENTIFIER
                 {
-                        $$ = mgc_chain_extends_list($1,$2);
+                        $$ = mgc_chain_extends_list($1,$3);
                 }
                 ;
 
 member_declaration_list: member_declaration
-                member_declaration_list member_declaration
+                | member_declaration_list member_declaration
                 {
                         $$ = mgc_chain_member_declaration_list($1,$2);
                 }

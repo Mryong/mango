@@ -738,7 +738,7 @@ typedef struct {
 typedef struct {
 	char			*name;
 	TypeSpecifier	*type;
-	DVM_Boolean		*is_final;
+	DVM_Boolean		is_final;
 	Expression		*initializer;
 	int				field_index;
 }FieldMember;
@@ -1061,7 +1061,7 @@ FunctionDefinition *mgc_constructor_function_definition(char *identifier,
 														Block *block);
 
 MemberDeclaration *mgc_create_field_member(ClassOrMemberModifierList *modifier,
-										   DVM_Boolean *is_final,
+										   DVM_Boolean is_final,
 										   TypeSpecifier *type,
 										   char *name,
 										   Expression *initializer);

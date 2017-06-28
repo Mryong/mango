@@ -988,7 +988,7 @@ FunctionDefinition *mgc_constructor_function_definition(char *identifier,
 }
 
 MemberDeclaration *mgc_create_field_member(ClassOrMemberModifierList *modifier,
-										   DVM_Boolean *is_final,
+										   DVM_Boolean is_final,
 										   TypeSpecifier *type,
 										   char *name,
 										   Expression *initializer){
