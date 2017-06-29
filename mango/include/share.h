@@ -51,6 +51,12 @@ typedef enum {
 
 
 /* wchar.c */
+size_t dvm_wcslen(wchar_t *str);
+wchar_t *dvm_wcscpy(wchar_t *dest, const wchar_t *src);
+wchar_t *dvm_wcsncpy(wchar_t *dest, const wchar_t *src, size_t n);
+int dvm_wcscmp(const wchar_t *s1, const wchar_t *s2);
+wchar_t *dvm_wcscat(wchar_t *s1, const wchar_t *s2);
+
 size_t dvm_mbstowcs_len(const char *src);
 void dvm_mbstowcs(const char *src,wchar_t *dest);
 size_t dvm_wcstombs_len(const wchar_t *src);

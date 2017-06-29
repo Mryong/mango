@@ -11,6 +11,8 @@
 #include <string.h>
 #include "mangoc.h"
 #include "DVM.h"
+#include "share.h"
+#include "DBG.h"
 
 static MGC_Compiler *st_current_Compiler;
 
@@ -317,7 +319,7 @@ static EnumDefinition *search_rename_enum(MGC_Compiler *compiler, RenameList *re
 	return NULL;
 }
 
-EnumDefinition *mg_search_enum(char *identifier){
+EnumDefinition *mgc_search_enum(char *identifier){
 	MGC_Compiler *compiler = mgc_get_current_compiler();
 	for (EnumDefinition *enum_pos = compiler->enum_definition_list; enum_pos; enum_pos = enum_pos->next) {
 		if (!strcmp(enum_pos->name, identifier)) {
@@ -399,6 +401,145 @@ TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag){
 	type_derive->next = NULL;
 	return type_derive;
 }
+
+void mgc_vstr_clear(VString *v){
+	v->string = NULL;
+}
+
+static size_t my_strlen(char *str){
+	if (str == NULL) {
+		return 0;
+	}
+	return strlen(str);
+}
+
+
+void mgc_vstr_append_string(VString *v, char *str){
+	size_t old_size = my_strlen(v->string);
+	size_t new_size = old_size + strlen(str) + 1;
+	v->string = MEM_realloc(v->string, new_size);
+	strcpy(&v->string[old_size], str);
+}
+
+void mgc_vstr_append_ch(VString *v, char ch){
+	size_t old_size = my_strlen(v->string);
+	v->string = MEM_realloc(v->string, old_size + 2);
+	v->string[old_size] = ch;
+	v->string[old_size + 1] = '\0';
+
+}
+
+static size_t my_wcslen(DVM_Char *str){
+	if (str == NULL) {
+		return 0;
+	}
+	return  dvm_wcslen(str);
+}
+
+
+void mgc_vwstr_append_string(VWString *v, DVM_Char *str){
+	size_t old_len = my_wcslen(v->string);
+	size_t new_size = sizeof(DVM_Char) * (old_len + dvm_wcslen(str) + 1);
+	v->string = MEM_realloc(v->string, new_size);
+	dvm_wcscmp(&v->string[old_len], str);
+
+}
+
+
+void mgc_vwstr_append_character(VWString *v, DVM_Char ch){
+	size_t len = my_wcslen(v->string);
+	v->string = MEM_realloc(v->string, sizeof(DVM_Char) * (len + 2));
+	v->string[len] = ch;
+	v->string[len + 1] = L'\0';
+
+}
+
+
+char *mgc_get_base_type_name(DVM_BaseType type){
+	switch (type) {
+		case DVM_VOID_TYPE:
+			return "void";
+			break;
+		case DVM_BOOLEAN_TYPE:
+			return "boolean";
+			break;
+		case DVM_INT_TYPE:
+			return "int";
+			break;
+		case DVM_DOUBLE_TYPE:
+			return "double";
+			break;
+		case DVM_STRING_TYPE:
+			return "string";
+			break;
+		case DVM_NATIVE_POINTER_TYPE:
+			return "native_pointer";
+			break;
+		case DVM_CLASS_TYPE:
+			return "class";
+			break;
+		case DVM_NULL_TYPE:
+			return "null";
+			break;
+		case DVM_DELEGAET_TYPE:
+		case DVM_ENUM_TYPE:
+		case DVM_BASE_TYPE:
+		case DVM_UNSPECIFIED_IDENTIFIER_TYPE:
+		default:
+			DBG_assert(0, "bad case. type..%d\n",type);
+			
+	}
+	
+	return NULL;
+}
+
+DVM_Char *mgc_expression_to_string(Expression *expr){
+	DVM_Char wc_buf[LINE_BUF_SIZE];
+	char buf[LINE_BUF_SIZE];
+	
+	if (expr->kind == BOOLEAN_EXPRESSION) {
+		if (expr->u.boolean_value) {
+			dvm_mbstowcs("true", wc_buf);
+		}else{
+			dvm_mbstowcs("false", wc_buf);
+		}
+	}else if (expr->kind == INT_EXPRESSION){
+		sprintf(buf, "%d",expr->u.int_value);
+		dvm_mbstowcs(buf, wc_buf);
+	}else if (expr->kind == DOUBLE_EXPRESSION){
+		sprintf(buf, "%lf", expr->u.double_value);
+		dvm_mbstowcs(buf, wc_buf);
+	}else if (expr->kind == STRING_EXPRESSION){
+		return expr->u.string_value;
+	}else{
+		return NULL;
+	}
+	
+	size_t len = dvm_wcslen(wc_buf);
+	DVM_Char *new_str = MEM_malloc(sizeof(DVM_Char) * (len + 1));
+	dvm_wcscpy(new_str, wc_buf);
+	return new_str;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

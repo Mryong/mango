@@ -285,17 +285,16 @@ struct TypeSpecifier_tag{
 	union{
 		struct{
 			ClassDefinition	*class_definition;
-			int class_index;
+			size_t class_index;
 		}class_ref;
 		
 		struct{
 			DelegateDefinition	*delegate_definition;
-			int	delegate_index;
 		}delegate_ref;
 		
 		struct{
 			EnumDefinition *enum_definition;
-			int enum_index;
+			ssize_t enum_index;
 		}enum_ref;
 	}u;
 	int	line_number;
@@ -320,14 +319,14 @@ typedef struct DeclarationList_tag{
 
 typedef struct {
 	FunctionDefinition *function_definition;
-	int	function_index;
+	size_t	function_index;
 }FunctionIdentifier;
 
 
 
 typedef struct {
 	ConstantDefinition	*constant_definition;
-	int	constant_index;
+	size_t	constant_index;
 }ConstantIdentifier;
 
 typedef enum {
@@ -342,8 +341,8 @@ typedef struct {
 	IdentifierKind	kind;
 	union{
 		Declaration			*declaration;
-		FunctionIdentifier	*function;
-		ConstantIdentifier	*constant;
+		FunctionIdentifier	function;
+		ConstantIdentifier	constant;
 	}u;
 }IdentifierExpression;
 
@@ -1112,7 +1111,7 @@ Declaration *mgc_search_declaration(char *identifier, Block *block);
 ConstantDefinition *mgc_search_constant(char *identifier);
 ClassDefinition *mgc_search_class(char *identifier);
 DelegateDefinition *mgc_search_delegate(char *identifier);
-EnumDefinition *mg_search_enum(char *identifier);
+EnumDefinition *mgc_search_enum(char *identifier);
 MemberDeclaration *mgc_search_member(ClassDefinition *class_def,char *member_name);
 TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type);
 TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag);

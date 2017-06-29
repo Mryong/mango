@@ -188,6 +188,127 @@ static DVM_Boolean is_exception_class(ClassDefinition *cd){
 
 static void fix_type_specifier(TypeSpecifier *type);
 
+static void fix_parameter_list(ParameterList *parameter_list){
+	for (ParameterList *pos = parameter_list; pos; pos = pos->next) {
+		fix_type_specifier(pos->type);
+	}
+}
+
+static void fix_thorws(ExceptionList *throws){
+	for (ExceptionList *pos = throws; pos; pos = pos->next) {
+		pos->exception->class_definition = mgc_search_class(pos->exception->identifer);
+		if (pos->exception->class_definition == NULL) {
+			mgc_compile_error(pos->exception->line_number, THROWS_TYPE_NOT_FOUND_ERR,STRING_MESSAGE_ARGUMENT,"name",pos->exception->identifer,MESSAGE_ARGUMENT_END);
+		}
+		
+		if (!is_exception_class(pos->exception->class_definition)) {
+			mgc_compile_error(pos->exception->line_number,THROW_TYPE_IS_NOT_EXCEPTION_ERR, STRING_MESSAGE_ARGUMENT,"name",pos->exception->identifer,MESSAGE_ARGUMENT_END);
+		}
+		
+	}
+
+}
+
+
+static void fix_type_specifier(TypeSpecifier *type){
+	for (TypeDerive *pos = type->derive; pos; pos = pos->next) {
+		if (pos->tag == FUNCTION_DERIVE) {
+			fix_parameter_list(pos->u.function_d.parameter_list);
+			fix_thorws(pos->u.function_d.throws);
+		}
+	}
+	
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	if (type->base_type == DVM_UNSPECIFIED_IDENTIFIER_TYPE) {
+		ClassDefinition *cd = mgc_search_class(type->identifier);
+		if (cd) {
+			if (!mgc_equal_package_name(cd->package_name, compiler->package_name)
+				&& cd->access_modifier != DVM_PUBLIC_MODIFIER) {
+				mgc_compile_error(type->line_number, PACKAGE_CLASS_ACCESS_ERR,STRING_MESSAGE_ARGUMENT,"class_name",cd->name,MESSAGE_ARGUMENT_END);
+			}
+			type->base_type = DVM_CLASS_TYPE;
+			type->u.class_ref.class_definition = cd;
+			type->u.class_ref.class_index = add_class(cd);
+			return;
+		}
+		
+		DelegateDefinition *dd = mgc_search_delegate(type->identifier);
+		if (dd) {
+			type->base_type = DVM_DELEGAET_TYPE;
+			type->u.delegate_ref.delegate_definition = dd;
+			return;
+		}
+		
+		EnumDefinition *ed = mgc_search_enum(type->identifier);
+		if (ed) {
+			type->base_type = DVM_ENUM_TYPE;
+			type->u.enum_ref.enum_definition = ed;
+			type->u.enum_ref.enum_index = reserve_enum_index(compiler, ed, DVM_FALSE);
+			return;
+		}
+		
+		mgc_compile_error(type->line_number, TYPE_NAME_NOT_FOUND_ERR,STRING_MESSAGE_ARGUMENT,"name",type->identifier,MESSAGE_ARGUMENT_END);
+	}
+
+}
+
+static TypeSpecifier *create_function_derive_type(FunctionDefinition *fd){
+	TypeSpecifier *ret = mgc_alloc_type_specifier(fd->type->base_type);
+	*ret = *fd->type;
+	ret->derive= mgc_alloc_type_derive(FUNCTION_DERIVE);
+	ret->derive->u.function_d.parameter_list = fd->parameter_list;
+	ret->derive->u.function_d.throws = fd->throws;
+	ret->derive->next = fd->type->derive;
+	return ret;
+}
+
+static Expression *fix_identifier_expression(Block *current_block, Expression *expr){
+	
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	
+	Declaration *decl = mgc_search_declaration(expr->u.identifer_express.name, current_block);
+	if (decl) {
+		expr->type = decl->type;
+		expr->u.identifer_express.kind = VARIABLE_IDENTIFER;
+		expr->u.identifer_express.u.declaration = decl;
+		return expr;
+	}
+	
+	
+	ConstantDefinition *cd = mgc_search_constant(expr->u.identifer_express.name);
+	if (cd) {
+		expr->type = cd->type;
+		expr->u.identifer_express.kind = CONSTANT_IDENTIFER;
+		expr->u.identifer_express.u.constant.constant_definition = cd;
+		expr->u.identifer_express.u.constant.constant_index = reserve_constant_idnex(compiler, cd, DVM_FALSE);
+		return expr;
+	}
+	
+	FunctionDefinition *fd = mgc_search_function(expr->u.identifer_express.name);
+	
+	if (fd) {
+		expr->type = create_function_derive_type(fd);
+		expr->u.identifer_express.kind = FUNCTION_IDENTIFER;
+		expr->u.identifer_express.u.function.function_definition = fd;
+		expr->u.identifer_express.u.function.function_index = reserve_function_index(compiler, fd);
+		return expr;
+	}
+	
+	mgc_compile_error(expr->line_number, IDENTIFIER_NOT_FOUND_ERR,STRING_MESSAGE_ARGUMENT,"name",expr->u.identifer_express.name,MESSAGE_ARGUMENT_END);
+	return NULL;
+
+}
+
+
+static Expression *fix_expression(Block *current_block, Expression *expr, Expression *parent, ExpressionList **el_p);
+
+
+static Expression *fix_comma_expression(Block *current_block, Expression *expr, ExpressionList **el_p){
+	expr->u.comma_expression.left = fix_expression(current_block, expr->u.comma_expression.left, expr, el_p);
+	expr->u.comma_expression.right = fix_expression(current_block, expr->u.comma_expression.right, expr, el_p);
+	expr->type = expr->u.comma_expression.right->type;
+	return expr;
+}
 
 
 

@@ -14,6 +14,31 @@
 #include <assert.h>
 #include "DVM.h"
 
+
+size_t dvm_wcslen(wchar_t *str){
+	return wcslen(str);
+}
+
+
+wchar_t *dvm_wcscpy(wchar_t *dest, const wchar_t *src){
+	return wcpcpy(dest, src);
+}
+
+
+wchar_t *dvm_wcsncpy(wchar_t *dest, const wchar_t *src, size_t n){
+	return wcsncpy(dest, src, n);
+
+}
+
+
+int dvm_wcscmp(const wchar_t *s1, const wchar_t *s2){
+	return wcscmp(s1, s2);
+}
+
+wchar_t *dvm_wcscat(wchar_t *s1, const wchar_t *s2){
+	return wcscat(s1, s2);
+}
+
 size_t dvm_mbstowcs_len(const char *src){
 	size_t src_idx = 0, dest_count = 0, wc_len = 0;
 	mbstate_t ps;
