@@ -493,6 +493,8 @@ char *mgc_get_base_type_name(DVM_BaseType type){
 	return NULL;
 }
 
+
+
 DVM_Char *mgc_expression_to_string(Expression *expr){
 	DVM_Char wc_buf[LINE_BUF_SIZE];
 	char buf[LINE_BUF_SIZE];
@@ -519,6 +521,56 @@ DVM_Char *mgc_expression_to_string(Expression *expr){
 	DVM_Char *new_str = MEM_malloc(sizeof(DVM_Char) * (len + 1));
 	dvm_wcscpy(new_str, wc_buf);
 	return new_str;
+}
+
+static void function_type_to_string(VString *vstr, TypeDerive *derive){
+	mgc_vstr_append_string(vstr, "(");
+	for (ParameterList *pos = derive->u.function_d.parameter_list; pos; pos = pos->next) {
+		char *type_name = mgc_get_type_name(pos->type);
+		mgc_vstr_append_string(vstr, type_name);
+		mgc_vstr_append_string(vstr, " ");
+		mgc_vstr_append_string(vstr, pos->name);
+		if (pos->next) {
+			mgc_vstr_append_string(vstr, ",");
+		}
+	}
+	mgc_vstr_append_string(vstr, ")");
+	
+	if (derive->u.function_d.throws) {
+		mgc_vstr_append_string(vstr, " throws ");
+		for (ExceptionList *pos = derive->u.function_d.throws; pos; pos = pos->next) {
+			mgc_vstr_append_string(vstr, pos->exception->identifer);
+			if (pos->next) {
+				mgc_vstr_append_string(vstr, ",");
+			}
+		}
+	}
+}
+
+
+char *mgc_get_type_name(TypeSpecifier *type){
+	VString vstr;
+
+	if (type->base_type == DVM_CLASS_TYPE
+		|| type->base_type == DVM_ENUM_TYPE
+		|| type->base_type == DVM_DELEGAET_TYPE) {
+		mgc_vstr_append_string(&vstr, type->identifier);
+	}else{
+		mgc_vstr_append_string(&vstr, mgc_get_base_type_name(type->base_type));
+	}
+	
+	for (TypeDerive *pos = type->derive; pos; pos = pos->next) {
+		if (pos->tag == FUNCTION_DERIVE) {
+			function_type_to_string(&vstr, pos);
+		}else if (pos->tag == ARRAY_DERIVE){
+			mgc_vstr_append_string(&vstr, "[]");
+		}else{
+			DBG_assert(0, "derive_tag ..%d\n",pos->tag);
+		}
+	}
+	
+	return vstr.string;
+	
 }
 
 

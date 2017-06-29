@@ -1115,6 +1115,13 @@ EnumDefinition *mgc_search_enum(char *identifier);
 MemberDeclaration *mgc_search_member(ClassDefinition *class_def,char *member_name);
 TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type);
 TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag);
-
+char *mgc_get_type_name(TypeSpecifier *type);
+DVM_Char *mgc_expression_to_string(Expression *expr);
+char *mgc_get_base_type_name(DVM_BaseType type);
+void mgc_vwstr_append_character(VWString *v, DVM_Char ch);
+void mgc_vwstr_append_string(VWString *v, DVM_Char *str);
+void mgc_vstr_append_ch(VString *v, char ch);
+void mgc_vstr_append_string(VString *v, char *str);
+void mgc_vstr_clear(VString *v);
 
 #endif /* mango_h */

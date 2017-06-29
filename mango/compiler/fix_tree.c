@@ -310,6 +310,17 @@ static Expression *fix_comma_expression(Block *current_block, Expression *expr, 
 	return expr;
 }
 
+static void cast_mismatch_error(int line_number, TypeSpecifier *src, TypeSpecifier *dest){
+	char *temp = mgc_get_type_name(src);
+	char *src_name = MEM_strdup(temp);
+	MEM_free(temp);
+	
+	
+	
+	
+	
+}
+
 
 
 
