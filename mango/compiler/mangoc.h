@@ -185,7 +185,7 @@ typedef enum {
 	DECREMENT_EXPRESSION,
 	INSTANCEOF_EXPRESSION,
 	DOWN_CAST_EXPRESSION,
-	CASE_EXPRESSION,
+	CAST_EXPRESSION,
 	UP_CASE_EXPRESSION,
 	NEW_EXPRESSION,
 	ARRAY_CREATION_EXPRESSION,
@@ -415,7 +415,7 @@ typedef struct {
 typedef struct {
 	Expression	*operand;
 	ClassDefinition	*interface_definition;
-	int	interface_index;
+	size_t	interface_index;
 }UpCastExpression;
 
 
@@ -887,6 +887,65 @@ struct MGC_Compiler_tag{
 
 
 
+static inline DVM_Boolean mgc_is_numeric_type(DVM_BaseType type){
+	return type == DVM_INT_TYPE || type == DVM_DOUBLE_TYPE;
+}
+
+static inline DVM_Boolean mgc_is_math_operator(ExpressionKind kind){
+	return kind == ADD_EXPRESSION || kind == SUB_EXPRESSION  || kind == MUL_EXPRESSION || kind == DIV_EXPRESSION || kind == MOD_EXPRESSION;
+}
+
+static inline DVM_Boolean mgc_is_compare_operator(ExpressionKind kind){
+	return kind == EQ_EXPRESSION || kind == NE_EXPRESSION
+	|| kind == GT_EXPRESSION || kind == GE_EXPRESSION
+	|| kind == LT_EXPRESSION || kind == LE_EXPRESSION;
+}
+
+static inline DVM_Boolean mgc_is_int(TypeSpecifier *type){
+	return type->base_type == DVM_INT_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_double(TypeSpecifier *type){
+	return type->base_type == DVM_DOUBLE_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_boolean(TypeSpecifier *type){
+	return type->base_type == DVM_BOOLEAN_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_string(TypeSpecifier *type){
+	return type->base_type == DVM_STRING_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_array(TypeSpecifier *type){
+	return type->derive && type->derive->tag == ARRAY_DERIVE;
+}
+
+static inline DVM_Boolean mgc_is_class_object(TypeSpecifier *type){
+	return type->base_type == DVM_CLASS_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_native_pointer(TypeSpecifier *type){
+	return type->base_type  == DVM_NATIVE_POINTER_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_object(TypeSpecifier *type){
+	return mgc_is_string(type) || mgc_is_array(type) || mgc_is_class_object(type) || mgc_is_native_pointer(type);
+}
+
+
+static inline DVM_Boolean mgc_is_enum(TypeSpecifier *type){
+	return type->base_type == DVM_BASE_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_delegate(TypeSpecifier *type){
+	return type->base_type == DVM_DELEGAET_TYPE && type->derive == NULL;
+}
+
+static inline DVM_Boolean mgc_is_function(TypeSpecifier *type){
+	return type->derive && type->derive->tag == FUNCTION_DERIVE;
+}
+
 
 
 
@@ -1105,6 +1164,8 @@ MGC_Compiler *mgc_get_current_compiler(void);
 void mgc_set_current_compiler(MGC_Compiler *compiler);
 void *mgc_malloc(size_t size);
 char *mgc_package_name_to_string(PackageName *package_name);
+DVM_Boolean mgc_equal_parameter(ParameterList *param1, ParameterList *param2);
+DVM_Boolean mgc_equal_type(TypeSpecifier *type1, TypeSpecifier *type2);
 DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2);
 FunctionDefinition *mgc_search_function(char *name);
 Declaration *mgc_search_declaration(char *identifier, Block *block);
@@ -1124,4 +1185,10 @@ void mgc_vstr_append_ch(VString *v, char ch);
 void mgc_vstr_append_string(VString *v, char *str);
 void mgc_vstr_clear(VString *v);
 
+
+
+
+
+
 #endif /* mango_h */
+

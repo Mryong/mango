@@ -57,6 +57,70 @@ char *mgc_package_name_to_string(PackageName *package_name){
 	return ret_val;
 }
 
+DVM_Boolean mgc_equal_parameter(ParameterList *param1, ParameterList *param2){
+	ParameterList *pos1;
+	ParameterList *pos2;
+	for (pos1 = param1, pos2 = param2; pos1 && pos2; pos1 = pos1->next, pos2 = pos2->next) {
+		if (!strcmp(pos1->name, pos2->name)) {
+			return DVM_FALSE;
+		}
+		
+		if (!mgc_equal_type(pos1->type, pos2->type)) {
+			return DVM_FALSE;
+		}
+	}
+	
+	if (pos1 || pos2) {
+		return DVM_FALSE;
+	}
+	return DVM_TRUE;
+}
+
+DVM_Boolean mgc_equal_type(TypeSpecifier *type1, TypeSpecifier *type2){
+	
+	if (type1->base_type != type2->base_type) {
+		return DVM_FALSE;
+	}
+	
+	if (type1->base_type == DVM_CLASS_TYPE) {
+		if (type1->u.class_ref.class_definition != type2->u.class_ref.class_definition) {
+			return DVM_FALSE;
+		}
+	}
+	
+	if (type1->base_type == DVM_ENUM_TYPE) {
+		if (type1->u.enum_ref.enum_definition != type2->u.enum_ref.enum_definition) {
+			return DVM_FALSE;
+		}
+	}
+	
+	if (type1->base_type == DVM_DELEGAET_TYPE) {
+		if (type1->u.delegate_ref.delegate_definition != type2->u.delegate_ref.delegate_definition) {
+			return DVM_FALSE;
+		}
+	}
+	
+	TypeDerive *td1 = NULL;
+	TypeDerive *td2 = NULL;
+	for (td1 = type1->derive, td2 = type2->derive; td1 && td2; td1 = td1->next, td2 = td2->next) {
+		if (td1->tag != td2->tag) {
+			return DVM_FALSE;
+		}
+		
+		if (td1->tag == FUNCTION_DERIVE) {
+			if (!mgc_equal_parameter(td1->u.function_d.parameter_list, td2->u.function_d.parameter_list)) {
+				return DVM_FALSE;
+			}
+		}
+	}
+	
+	if (td1 || td2) {
+		return DVM_FALSE;
+	}
+	
+	return DVM_TRUE;
+}
+
 
 DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2){
 	if (package_name1 == NULL || package_name2 == NULL) {
@@ -401,6 +465,10 @@ TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag){
 	type_derive->next = NULL;
 	return type_derive;
 }
+
+
+
+
 
 void mgc_vstr_clear(VString *v){
 	v->string = NULL;

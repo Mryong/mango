@@ -12,6 +12,7 @@
 #include "mangoc.h"
 #include "share.h"
 #include "MEM.h"
+#include "DBG.h"
 
 static size_t reserve_function_index(MGC_Compiler *compiler, FunctionDefinition *src){
 	if (src->class_definition && src->block == NULL) {
@@ -315,11 +316,178 @@ static void cast_mismatch_error(int line_number, TypeSpecifier *src, TypeSpecifi
 	char *src_name = MEM_strdup(temp);
 	MEM_free(temp);
 	
+	temp = mgc_get_type_name(dest);
+	char *dest_name = MEM_strdup(temp);
+	MEM_free(temp);
 	
-	
-	
+	mgc_compile_error(line_number, CAST_MISMATCH_ERR,
+					  STRING_MESSAGE_ARGUMENT,"src",src_name,
+					  STRING_MESSAGE_ARGUMENT,"dest",dest_name,
+					  MESSAGE_ARGUMENT_END);
 	
 }
+
+static Expression *alloc_cast_expression(CastType cast_type,Expression *operand){
+	Expression *cast_expr = mgc_alloc_expression(CAST_EXPRESSION);
+	cast_expr->line_number = operand->line_number;
+	cast_expr->u.cast.operand = operand;
+	cast_expr->u.cast.type = cast_type;
+	
+	if (cast_type == INT_TO_DOUBLE_CAST) {
+		cast_expr->type = mgc_alloc_type_specifier(DVM_DOUBLE_TYPE);
+	}else if (cast_type == DOUBLE_TO_INT_CAST){
+		cast_expr->type = mgc_alloc_type_specifier(DVM_INT_TYPE);
+	}else if (cast_type == BOOLEAN_TO_STRING_CAST
+			  || cast_type == INT_TO_STRING_CAST
+			  || cast_type == DOUBLE_TO_STRING_CAST
+			  || cast_type == ENUM_TO_STRING_CAST){
+		cast_expr->type = mgc_alloc_type_specifier(DVM_STRING_TYPE);
+	}else{
+		DBG_assert(cast_type == FUNCTION_TO_DELEGATE_CAST, "cast_type..%d\n",cast_type);
+		
+	}
+	return cast_expr;
+}
+
+static Expression *create_up_cast(Expression *src, ClassDefinition *dest_interface, size_t interface_index){
+	TypeSpecifier *type = mgc_alloc_type_specifier(DVM_CLASS_TYPE);
+	type->identifier = dest_interface->name;
+	type->u.class_ref.class_definition = dest_interface;
+	type->u.class_ref.class_index = interface_index;
+	
+	Expression *cast_expr = mgc_alloc_expression(UP_CASE_EXPRESSION);
+	cast_expr->type = type;
+	cast_expr->u.up_cast.interface_definition = dest_interface;
+	cast_expr->u.up_cast.interface_index = interface_index;
+	cast_expr->u.up_cast.operand = src;
+	return cast_expr;
+}
+
+static DVM_Boolean check_throws(ExceptionList *wide, ExceptionList *narrow, ExceptionList **error_exception){
+	ExceptionList *narrow_pos;
+	DVM_Boolean is_thrown = DVM_FALSE;
+	for (narrow_pos = narrow; narrow_pos; narrow_pos = narrow_pos->next) {
+		is_thrown = DVM_FALSE;
+		for (ExceptionList *wide_pos = wide; wide_pos; wide_pos = wide_pos->next) {
+			ClassDefinition *narrow_cd = narrow_pos->exception->class_definition;
+			ClassDefinition *wide_cd = wide_pos->exception->class_definition;
+			if (narrow_cd == wide_cd || is_super_class(narrow_cd, wide_cd, NULL, NULL)) {
+				is_thrown = DVM_TRUE;
+				break;
+			}
+		}
+		
+		if (!is_thrown) {
+			break;
+		}
+	}
+	
+	if (!is_thrown) {
+		*error_exception = narrow_pos;
+	}
+	
+	return is_thrown;
+
+
+}
+
+
+static void check_func_compati_sub(int line_number, char *name,
+								   TypeSpecifier *type1, ParameterList *param1, ExceptionList *throws1,
+								   TypeSpecifier *type2, ParameterList *param2, ExceptionList *throws2){
+	ParameterList *param_pos1, *param_pos2;
+	size_t param_index = 1;
+	for (param_pos1 = param1, param_pos2 = param2; param_pos1 && param_pos2; param_pos1 = param_pos1->next,param_pos2 = param_pos2->next) {
+		if (!check_type_compatibility(param_pos2->type, param_pos1->type)) {
+			mgc_compile_error(line_number, BAD_PARAMETER_TYPE_ERR,
+							  STRING_MESSAGE_ARGUMENT,"func_name",name,
+							  INT_MESSAGE_ARGUMENT,"index",param_index,
+							  STRING_MESSAGE_ARGUMENT,"param_name",param_pos2->name,
+							  MESSAGE_ARGUMENT_END);
+		}
+		param_index++;
+	}
+	
+	if (param_pos1 != NULL || param_pos2 != NULL) {
+		mgc_compile_error(line_number, BAD_PARAMETER_COUNT_ERR,
+						  STRING_MESSAGE_ARGUMENT,"name",name,
+						  MESSAGE_ARGUMENT_END);
+	}
+	
+	if (!check_type_compatibility(type1, type2)) {
+		mgc_compile_error(line_number, BAD_RETURN_TYPE_ERR,
+						  STRING_MESSAGE_ARGUMENT,"name",name,
+						  MESSAGE_ARGUMENT_END);
+	}
+	
+	ExceptionList *error_exception = NULL;
+	if (!check_throws(throws1, throws2, &error_exception)) {
+		mgc_compile_error(line_number, BAD_EXCEPTION_ERR,
+						  STRING_MESSAGE_ARGUMENT,"func_name",name,
+						  STRING_MESSAGE_ARGUMENT,"exception_name",error_exception->exception->identifer,
+						  MESSAGE_ARGUMENT_END);
+	}
+	
+
+}
+
+static void check_func_compatibility(FunctionDefinition *fd1, FunctionDefinition *fd2){
+	check_func_compati_sub(fd2->end_line_number, fd2->name, fd1->type, fd1->parameter_list, fd1->throws, fd2->type, fd2->parameter_list, fd2->throws);
+}
+
+static Expression *crate_to_string_cast(Expression *src){
+	Expression *cast = NULL;
+	if (mgc_is_boolean(src->type)) {
+		cast = alloc_cast_expression(BOOLEAN_TO_STRING_CAST, src);
+	}else if (mgc_is_int(src->type)){
+		cast = alloc_cast_expression(INT_TO_STRING_CAST, src);
+	}else if (mgc_is_double(src->type)){
+		cast = alloc_cast_expression(DOUBLE_TO_STRING_CAST, src);
+	}else if (mgc_is_enum(src->type)){
+		cast = alloc_cast_expression(ENUM_TO_STRING_CAST, src);
+	}
+	return cast;
+}
+
+
+static Expression *create_assign_cast(Expression *src, TypeSpecifier *dest){
+	if (mgc_equal_type(src->type, dest)) {
+		return src;
+	}
+	
+	if (mgc_is_object(dest) && src->type->base_type == DVM_NULL_TYPE) {
+		DBG_assert(src->type->derive == NULL, "derive != NULL");
+	}
+	
+	Expression *cast_expr = NULL;
+	
+	if (mgc_is_class_object(src->type) && mgc_is_class_object(dest)) {
+		DVM_Boolean is_interface;
+		size_t interface_index;
+		if (is_super_class(src->type->u.class_ref.class_definition, dest->u.class_ref.class_definition, &is_interface, &interface_index)) {
+			if (is_interface) {
+				 cast_expr = create_up_cast(src, dest->u.class_ref.class_definition, interface_index);
+				return cast_expr;
+			}
+			return src;
+		}
+	}else{
+		cast_mismatch_error(src->line_number, src->type, dest);
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+}
+
 
 
 
