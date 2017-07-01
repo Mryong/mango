@@ -435,7 +435,7 @@ static void check_func_compatibility(FunctionDefinition *fd1, FunctionDefinition
 	check_func_compati_sub(fd2->end_line_number, fd2->name, fd1->type, fd1->parameter_list, fd1->throws, fd2->type, fd2->parameter_list, fd2->throws);
 }
 
-static Expression *crate_to_string_cast(Expression *src){
+static Expression *create_to_string_cast(Expression *src){
 	Expression *cast = NULL;
 	if (mgc_is_boolean(src->type)) {
 		cast = alloc_cast_expression(BOOLEAN_TO_STRING_CAST, src);
@@ -475,15 +475,42 @@ static Expression *create_assign_cast(Expression *src, TypeSpecifier *dest){
 		cast_mismatch_error(src->line_number, src->type, dest);
 	}
 	
+	if (mgc_is_function(src->type) && mgc_is_delegate(dest)) {
+		TypeSpecifier *delegate_type = mgc_alloc_type_specifier(dest->base_type);
+		*delegate_type = *src->type;
+		delegate_type->derive = src->type->derive->next;
+		
+		DelegateDefinition *delegate_define = dest->u.delegate_ref.delegate_definition;
+		
+		
+		check_func_compati_sub(src->line_number, "", delegate_define->type, delegate_define->parameter_list, delegate_define->throws, delegate_type, src->type->derive->u.function_d.parameter_list, src->type->derive->u.function_d.throws);
+		
+		cast_expr = alloc_cast_expression(FUNCTION_TO_DELEGATE_CAST, src);
+		cast_expr->type = delegate_type;
+		return cast_expr;
+		
+	}
 	
+	if (mgc_is_int(src->type) && mgc_is_double(dest)) {
+		cast_expr = alloc_cast_expression(INT_TO_DOUBLE_CAST, src);
+		return cast_expr;
+	}
 	
+	if (mgc_is_double(src->type) && mgc_is_int(dest)) {
+		cast_expr = alloc_cast_expression(DOUBLE_TO_INT_CAST, src);
+		return cast_expr;
+	}
 	
+	if (mgc_is_string(dest)) {
+		cast_expr = create_to_string_cast(src);
+		if (cast_expr) {
+			return cast_expr;
+		}
+	}
 	
+	cast_mismatch_error(src->line_number, src->type, dest);
 	
-	
-	
-	
-	
+	return NULL;	
 	
 
 }
