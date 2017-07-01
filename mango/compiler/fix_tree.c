@@ -515,7 +515,132 @@ static Expression *create_assign_cast(Expression *src, TypeSpecifier *dest){
 
 }
 
+static Expression *eval_math_expression_int(Expression *expression, int left, int right){
+	switch (expression->kind) {
+		case ADD_EXPRESSION:
+			expression->u.int_value = left + right;
+				break;
+		case SUB_EXPRESSION:
+			expression->u.int_value = left - right;
+			break;
+		case MUL_EXPRESSION:
+			expression->u.int_value = left * right;
+			break;
+		case DIV_EXPRESSION:
+			if (right == 0) {
+				mgc_compile_error(expression->line_number, DIVISION_BY_ZERO_IN_COMPILE_ERR,MESSAGE_ARGUMENT_END);
+			}
+			expression->u.int_value = left / right;
+			break;
+		case MOD_EXPRESSION:
+			expression->u.int_value = left % right;
+			break;
+	  default:
+			DBG_assert(0,"expression->kind ..%d\n", expression->kind);
+			break;
+			
+	}
+	expression->kind = INT_EXPRESSION;
+	expression->type = mgc_alloc_type_specifier(DVM_INT_TYPE);
+	return expression;
 
+}
+
+static Expression *eval_math_expression_double(Expression *expression, double left, double right){
+	switch (expression->kind) {
+		case ADD_EXPRESSION:
+			expression->u.double_value = left + right;
+			break;
+		case SUB_EXPRESSION:
+			expression->u.double_value = left - right;
+			break;
+		case MUL_EXPRESSION:
+			expression->u.double_value = left * right;
+			break;
+		case DIV_EXPRESSION:
+			if (right == 0) {
+				mgc_compile_error(expression->line_number, DIVISION_BY_ZERO_IN_COMPILE_ERR,MESSAGE_ARGUMENT_END);
+			}
+			expression->u.double_value = left / right;
+	  default:
+			DBG_assert(0,"expression->kind ..%d\n", expression->kind);
+			break;
+	}
+	expression->kind = DOUBLE_EXPRESSION;
+	expression->type = mgc_alloc_type_specifier(DVM_DOUBLE_TYPE);
+	return expression;
+}
+
+
+static Expression *chain_string(Expression *expr){
+	DVM_Char *left = expr->u.binary_expression.left->u.string_value;
+	DVM_Char *right = mgc_expression_to_string(expr->u.binary_expression.right);
+	if (!right) {
+		return expr;
+	}
+	
+	size_t new_str_len = dvm_wcslen(left) + dvm_wcslen(right);
+	DVM_Char *new_str = MEM_malloc(sizeof(DVM_Char) * (new_str_len + 1));
+	dvm_wcscpy(new_str, left);
+	dvm_wcscat(new_str, right);
+	MEM_free(left);
+	MEM_free(right);
+	
+	
+	expr->kind = STRING_EXPRESSION;
+	expr->type = mgc_alloc_type_specifier(DVM_STRING_TYPE);
+	expr->u.string_value = new_str;
+	return expr;
+}
+
+
+static Expression *eval_math_expression(Block *current_block, Expression *expr){
+	if (expr->u.binary_expression.left->kind == INT_EXPRESSION
+		&& expr->u.binary_expression.left->kind == INT_EXPRESSION) {
+		expr = eval_math_expression_int(expr, expr->u.binary_expression.left->u.int_value, expr->u.binary_expression.right->u.int_value);
+	}
+	
+	if (expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION
+		&& expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION) {
+		expr = eval_math_expression_double(expr, expr->u.binary_expression.left->u.double_value, expr->u.binary_expression.right->u.double_value);
+	}
+	
+	
+	if (expr->u.binary_expression.left->kind == INT_EXPRESSION
+		&& expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION) {
+		expr = eval_math_expression_double(expr, expr->u.binary_expression.left->u.int_value, expr->u.binary_expression.right->u.double_value);
+	}
+	
+	
+	if (expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION
+		&& expr->u.binary_expression.left->kind == INT_EXPRESSION) {
+		expr = eval_math_expression_double(expr, expr->u.binary_expression.left->u.double_value, expr->u.binary_expression.right->u.int_value);
+	}
+	
+	if (expr->u.binary_expression.left->kind == STRING_EXPRESSION && expr->kind == ADD_EXPRESSION) {
+	   expr	= chain_string(expr);
+	}
+	
+	return expr;
+	
+}
+
+static Expression *cast_binary_expression(Expression *expr){
+	Expression *cast_expr = NULL;
+	if (mgc_is_int(expr->u.binary_expression.left->type) && mgc_is_double(expr->u.binary_expression.right->type)) {
+	    cast_expr = alloc_cast_expression(INT_TO_DOUBLE_CAST, expr->u.binary_expression.left);
+		expr->u.binary_expression.left = cast_expr;
+	}else if(mgc_is_double(expr->u.binary_expression.left->type) && mgc_is_int(expr->u.binary_expression.right->type)){
+		cast_expr = alloc_cast_expression(INT_TO_DOUBLE_CAST, expr->u.binary_expression.right);
+		expr->u.binary_expression.right = cast_expr;
+	}else if (mgc_is_string(expr->u.binary_expression.left->type) && expr->kind == ADD_EXPRESSION){
+		cast_expr = create_to_string_cast(expr->u.binary_expression.right);
+		if (cast_expr) {
+			expr->u.binary_expression.right = cast_expr;
+		}
+	}
+	return expr;
+}
 
 
 
