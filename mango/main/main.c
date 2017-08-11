@@ -15,8 +15,19 @@
 #include "MGC.h"
 
 
+
+
+
 int main(int argc,char * argv[]){
+	
+	
+	
 	setlocale(LC_CTYPE, "zh_CN.UTF-8");
+	
+	
+	
+	
+	
 	if (argc <2) {
 		fprintf(stderr, "usage:%s filename arg1 arg2",argv[0]);
 		exit(1);

@@ -22,6 +22,9 @@
 #define UNDEFINED_ENUMERATOR (-1)
 #define ABSTRACT_METHOD_INDEX (-1)
 
+
+#define DEFAULT_CONSTRUCTOR_NAME "initailize"
+
 typedef enum {
 	INT_MESSAGE_ARGUMENT = 1,
 	DOUBLE_MESSAGE_ARGUMENT,
@@ -55,7 +58,7 @@ typedef enum {
 	FUNCTION_NOT_IDENTIFIER_ERR,
 	FUNCTION_NOT_FOUND_ERR,
 	ARGUMENT_COUNT_MISMATCH_ERR,
-	NOT_VALUE_ERR,
+	NOT_LVALUE_ERR,
 	LABEL_NOT_FOUND_ERR,
 	ARRAY_LITERAL_EMPTY_ERR,
 	INDEX_LEFT_OPERAND_NOT_ARRAY_ERR,
@@ -121,7 +124,7 @@ typedef enum {
 	WHILE_CONDITION_NOT_BOOLEAN_ERR,
 	FOR_CONDITION_NOT_BOOLEAN_ERR,
 	DO_WHILE_CONDITION_NOT_BOOLEAN_ERR,
-	CAST_TYPE_MISMATCH_ERR,
+	CASE_TYPE_MISMATCH_ERR,
 	FINAL_VARIABLE_ASSIGNMENT_ERR,
 	FINAL_FIELD_ASSIGNMENT_ERR,
 	FINAL_VARIABLE_WITHOUT_INITIALIZER_ERR,
@@ -160,7 +163,7 @@ typedef enum {
 	MUL_EXPRESSION,
 	DIV_EXPRESSION,
 	MOD_EXPRESSION,
-	BIT_ADD_EXPRESSION,
+	BIT_AND_EXPRESSION,
 	BIT_OR_EXPRESSION,
 	BIT_XOR_EXPRESSION,
 	EQ_EXPRESSION,
@@ -186,10 +189,10 @@ typedef enum {
 	INSTANCEOF_EXPRESSION,
 	DOWN_CAST_EXPRESSION,
 	CAST_EXPRESSION,
-	UP_CASE_EXPRESSION,
+	UP_CAST_EXPRESSION,
 	NEW_EXPRESSION,
 	ARRAY_CREATION_EXPRESSION,
-	ENUMATOR_EXPRESSION,
+	ENUMERATOR_EXPRESSION,
 	EXPRESSION_KIND_COUNT_PLUS_1
 
 }ExpressionKind;
@@ -308,7 +311,7 @@ typedef struct {
 	char			*name;
 	Expression		*initializer;
 	DVM_Boolean		is_final;
-	int				variable_index;
+	size_t				variable_index;
 	DVM_Boolean		is_loacl;
 }Declaration;
 
@@ -395,7 +398,7 @@ typedef struct {
 	char	*member_name;
 	Expression	*expression;
 	MemberDeclaration	*declaration;
-	int method_index;
+	size_t method_index;
 }MemberExpression;
 
 typedef struct {
@@ -438,7 +441,7 @@ typedef struct {
 typedef struct {
 	char	*class_name;
 	ClassDefinition	*class_definition;
-	int		*class_index;
+	size_t		class_index;
 	char	*method_name;
 	MemberDeclaration	*method_delclaration;
 	ArgumentList	*argument;
@@ -683,7 +686,7 @@ struct	FunctionDefinition_tag {
 	char				*name;
 	ParameterList		*parameter_list;
 	Block				*block;
-	int					*local_variable_count;
+	size_t					local_variable_count;
 	Declaration			**local_variable;
 	ClassDefinition		*class_definition;
 	ExceptionList		*throws;
@@ -862,22 +865,22 @@ struct MGC_Compiler_tag{
 	ClassDefinition		*current_class_definition;
 	TryStatement		*current_try_statement;
 	CatchClause			*current_catch_clause;
-	int					*current_finally_label;
+	size_t					*current_finally_label;
 	InputMode			input_mode;
 	CompilerList		*required_list;
-	int					array_method_count;
+	size_t					array_method_count;
 	FunctionDefinition	*array_method;
-	int					string_method_count;
+	size_t					string_method_count;
 	FunctionDefinition	*string_method;
 	Encoding			source_encoding;
 	
-	int					dvm_function_count;
+	size_t					dvm_function_count;
 	DVM_Function		*dvm_function;
-	int					dvm_enum_count;
+	size_t					dvm_enum_count;
 	DVM_Enum			*dvm_enum;
-	int					dvm_constant_count;
+	size_t					dvm_constant_count;
 	DVM_Constant		*dvm_constant;
-	int					dvm_class_count;
+	size_t					dvm_class_count;
 	DVM_Class			*dvm_class;
 	
 	
@@ -1175,6 +1178,8 @@ DelegateDefinition *mgc_search_delegate(char *identifier);
 EnumDefinition *mgc_search_enum(char *identifier);
 MemberDeclaration *mgc_search_member(ClassDefinition *class_def,char *member_name);
 TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type);
+TypeSpecifier *mgc_copy_type_specifier(TypeSpecifier *type);
+
 TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag);
 char *mgc_get_type_name(TypeSpecifier *type);
 DVM_Char *mgc_expression_to_string(Expression *expr);

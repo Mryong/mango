@@ -459,6 +459,12 @@ TypeSpecifier *mgc_alloc_type_specifier(DVM_BaseType type){
 	return ts;
 }
 
+TypeSpecifier *mgc_copy_type_specifier(TypeSpecifier *type){
+	TypeSpecifier *ts = mgc_malloc(sizeof(TypeSpecifier));
+	*ts = *type;
+	return ts;
+}
+
 TypeDerive *mgc_alloc_type_derive(DeriveTag derive_tag){
 	TypeDerive *type_derive = mgc_malloc(sizeof(*type_derive));
 	type_derive->tag = derive_tag;

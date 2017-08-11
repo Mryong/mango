@@ -1,8 +1,5 @@
-public class A: B, C, D{
-	private int a;
-	int abc(){
+public interface A: B, C, D{
 
-	}
 }
 
 int a(int b, int c){

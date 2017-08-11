@@ -98,7 +98,6 @@ RequireList *mgc_chain_require_list(RequireList *list,RequireList *add){
 }
 
 RenameList *mgc_create_rename_list(PackageName *package_name, char *identifer){
-	
 	PackageName *tail = package_name;
 	PackageName *pre_tail = NULL;
 	while (tail->next) {

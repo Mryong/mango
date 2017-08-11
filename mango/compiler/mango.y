@@ -385,7 +385,7 @@ multiplication_expression: unary_expression
                         $$ = mgc_create_binary_expression(MOD_EXPRESSION,$1,$3);
                 }
                 | multiplication_expression BIT_AND unary_expression{
-                        $$ = mgc_create_binary_expression(BIT_ADD_EXPRESSION,$1,$3);
+                        $$ = mgc_create_binary_expression(BIT_AND_EXPRESSION,$1,$3);
                 }
                 | multiplication_expression BIT_OR unary_expression
                 {

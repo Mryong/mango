@@ -48,6 +48,9 @@ typedef enum {
 
 #define ARRAY_SZIE(array) (sizeof(array) / sizeof((array)[0]))
 
+#define BUG_EXCEPTION_CLASS "BugException"
+#define RUNTIME_EXCEPTION_CLASS "RuntimeException"
+
 
 
 /* wchar.c */

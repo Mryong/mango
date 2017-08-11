@@ -121,11 +121,11 @@ typedef struct {
 	DVM_TypeSpecifier	*type;
 	char				*package_name;
 	char				*name;
-	int					parameter_count;
+	size_t					parameter_count;
 	DVM_LocalVariable	*parameter;
 	DVM_Boolean			is_implemented;
 	DVM_Boolean			is_method;
-	int					local_variable_count;
+	size_t					local_variable_count;
 	DVM_LocalVariable	*locak_variable;
 	DVM_CodeBlock		code_block;
 }DVM_Function;
