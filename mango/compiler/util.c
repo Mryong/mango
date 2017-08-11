@@ -76,6 +76,19 @@ DVM_Boolean mgc_equal_parameter(ParameterList *param1, ParameterList *param2){
 	return DVM_TRUE;
 }
 
+DVM_Boolean mgc_equal_string(char *str1, char *str2){
+	if (str1 == NULL && str2 == NULL) {
+		return DVM_TRUE;
+	}
+	
+	if (str1 == NULL || str2 == NULL) {
+		return DVM_FALSE;
+	}
+	
+	return !strcmp(str1, str2);
+}
+
+
 DVM_Boolean mgc_equal_type(TypeSpecifier *type1, TypeSpecifier *type2){
 	
 	if (type1->base_type != type2->base_type) {

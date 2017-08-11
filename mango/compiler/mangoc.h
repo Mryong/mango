@@ -1168,6 +1168,7 @@ void mgc_set_current_compiler(MGC_Compiler *compiler);
 void *mgc_malloc(size_t size);
 char *mgc_package_name_to_string(PackageName *package_name);
 DVM_Boolean mgc_equal_parameter(ParameterList *param1, ParameterList *param2);
+DVM_Boolean mgc_equal_string(char *str1, char *str2);
 DVM_Boolean mgc_equal_type(TypeSpecifier *type1, TypeSpecifier *type2);
 DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2);
 FunctionDefinition *mgc_search_function(char *name);

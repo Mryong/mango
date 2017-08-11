@@ -1761,12 +1761,71 @@ static ExceptionList *type_to_exception_list(TypeSpecifier *type, int line_numbe
 
 static void fix_throw_statement(Block *current_block, Statement *statement, FunctionDefinition *fd, ExceptionList **el_p){
 	statement->u.throw_s.expression = fix_expression(current_block, statement->u.throw_s.expression, NULL, el_p);
+	Expression *expression = statement->u.throw_s.expression;
 	ExceptionList *el = NULL;
-	if (statement->u.throw_s.expression) {
+	if (expression) {
+		if (!mgc_is_object(expression->type)) {
+			mgc_compile_error(expression->line_number, THROW_TYPE_IS_NOT_CLASS_ERR, MESSAGE_ARGUMENT_END);
+		}
 		
+		if (!is_exception_class(expression->type->u.class_ref.class_definition)) {
+			mgc_compile_error(expression->line_number, THROW_TYPE_IS_NOT_EXCEPTION_ERR, STRING_MESSAGE_ARGUMENT, "name", expression->type->u.class_ref.class_definition->name, MESSAGE_ARGUMENT_END);
+		}
+		 el = type_to_exception_list(expression->type, expression->line_number);
+	}else{
+		MGC_Compiler *compiler = mgc_get_current_compiler();
+		if (compiler->current_catch_clause == NULL) {
+			mgc_compile_error(statement->line_number, RETHOROW_OUT_OF_CATCH_ERR, MESSAGE_ARGUMENT_END);
+		}
+		statement->u.throw_s.variable_declaration = compiler->current_catch_clause->variable_declaration;
+		el = type_to_exception_list(statement->u.throw_s.variable_declaration->type, statement->line_number);
 	}
+	
+	add_exception(el_p, el);
 }
 
+
+static void check_in_finally(Block *block, Statement *statement){
+	char *str = NULL;
+	char *label = NULL;
+	
+	if (statement->type == RETURN_STATEMENT) {
+		str = "return";
+	}else if (statement->type == BREAK_STATEMENT){
+		str = "break";
+		label = statement->u.break_s.label;
+	}else if(statement->type == CONTINUE_STATEMENT){
+		str = "continue";
+		label = statement->u.continue_s.label;
+	}
+	
+	DVM_Boolean is_in_finally = DVM_FALSE;
+	for (Block *pos = block; pos; pos = pos->out_block) {
+		if (pos->type == FINALLY_CLAUSE_BLOCK) {
+			is_in_finally = DVM_TRUE;
+			break;
+		}
+		
+		if(statement->type == BREAK_STATEMENT || statement->type == CONTINUE_STATEMENT){
+			
+			if (pos->type == WHILE_STATEMENT_BLOCK && dvm_equal_string(label, pos->parent.statement_info.statement->u.while_s.label)) {
+				break;
+			}
+			
+			if (pos->type == DO_WHILE_STATEMENT_BLOCK) {
+    
+			}
+			
+			if (pos->type == FOR_STATEMENT_BLOCK) {
+    
+			}
+			
+		}
+	}
+	
+	
+	
+}
 
 
 
