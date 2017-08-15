@@ -1812,20 +1812,301 @@ static void check_in_finally(Block *block, Statement *statement){
 				break;
 			}
 			
-			if (pos->type == DO_WHILE_STATEMENT_BLOCK) {
-    
+			if (pos->type == DO_WHILE_STATEMENT_BLOCK && dvm_equal_string(label, pos->parent.statement_info.statement->u.do_while_s.label)) {
+				break;
 			}
 			
-			if (pos->type == FOR_STATEMENT_BLOCK) {
-    
+			if (pos->type == FOR_STATEMENT_BLOCK && dvm_equal_string(label, pos->parent.statement_info.statement->u.for_s.label)) {
+				break;
 			}
 			
 		}
 	}
 	
-	
+	if (is_in_finally) {
+		mgc_compile_error(statement->line_number, GOTO_STATEMENT_IN_FINALLY_ERR,STRING_MESSAGE_ARGUMENT, "statement_name",str, MESSAGE_ARGUMENT_END);
+	}
 	
 }
+
+
+static void
+fix_statement(Block *current_block, Statement *statement,
+			  FunctionDefinition *fd, ExceptionList **el_p)
+{
+	switch (statement->type) {
+		case EXPRESSION_STATEMENT:
+			statement->u.expression_s
+			= fix_expression(current_block, statement->u.expression_s,
+							 NULL, el_p);
+			break;
+		case IF_STATEMENT:
+			fix_if_statement(current_block, &statement->u.if_s, fd, el_p);
+			break;
+		case SWITCH_STATEMENT:
+			fix_switch_statement(current_block, &statement->u.switch_s, fd, el_p);
+			break;
+		case WHILE_STATEMENT:
+			fix_while_statement(current_block, &statement->u.while_s, fd, el_p);
+			break;
+		case FOR_STATEMENT:
+			fix_for_statement(current_block, &statement->u.for_s, fd, el_p);
+			break;
+		case DO_WHILE_STATEMENT:
+			fix_do_while_statement(current_block, &statement->u.do_while_s,
+								   fd, el_p);
+			break;
+		case FOREACH_STATEMENT:
+			statement->u.foreach_s.collection
+			= fix_expression(current_block, statement->u.foreach_s.collection,
+							 NULL, el_p);
+			fix_statement_list(statement->u.for_s.block,
+							   statement->u.for_s.block->statement_list, fd,
+							   el_p);
+			break;
+		case RETURN_STATEMENT:
+			check_in_finally(current_block, statement);
+			fix_return_statement(current_block, statement, fd, el_p);
+			break;
+		case BREAK_STATEMENT:
+			check_in_finally(current_block, statement);
+			break;
+		case CONTINUE_STATEMENT:
+			check_in_finally(current_block, statement);
+			break;
+		case TRY_STATEMENT:
+			fix_try_statement(current_block, statement, fd, el_p);
+			break;
+		case THROW_STATEMENT:
+			fix_throw_statement(current_block, statement, fd, el_p);
+			break;
+		case DECLARATION_STATEMENT:
+			add_declaration(current_block, statement->u.declaration_s, fd, statement->line_number, DVM_FALSE);
+			fix_type_specifier(statement->u.declaration_s->type);
+			if (statement->u.declaration_s->initializer) {
+				Expression *temp = fix_expression(current_block, statement->u.declaration_s->initializer, NULL, el_p);
+				statement->u.declaration_s->initializer = create_assign_cast(temp, statement->u.declaration_s->type);
+			}
+			
+			break;
+		case STATEMENT_TYPE_COUNT_PLUS_1: /* FALLTHRU */
+		default:
+			DBG_assert(0, "bad case. type..%d\n", statement->type);
+	}
+}
+
+static void fix_statement_list(Block *current_block, StatementList *list, FunctionDefinition *fd, ExceptionList **el_p){
+	for (StatementList *pos = list; pos; pos = pos->next) {
+		fix_statement(current_block, pos->statement, fd, el_p);
+	}
+}
+
+static void add_parameter_as_declaration(FunctionDefinition *fd){
+	for (ParameterList *pos = fd->parameter_list; pos; pos = pos->next) {
+		if (mgc_search_declaration(pos->name, fd->block)) {
+			mgc_compile_error(pos->line_number, PARAMETER_MULTIPLE_DEFINE_ERR,STRING_MESSAGE_ARGUMENT, "name", pos->name);
+		}
+		fix_type_specifier(pos->type);
+		Declaration *decl = mgc_alloc_declaration(DVM_TRUE, pos->type, pos->name);
+		
+		add_declaration(fd->block, decl, fd, pos->line_number, DVM_TRUE);
+	}
+
+}
+
+static void add_return_statement(FunctionDefinition *fd, ExceptionList **el_p){
+	StatementList **last_p;
+	if (fd->block->statement_list == NULL) {
+		last_p = & fd->block->statement_list;
+	}else{
+		StatementList *last = NULL;
+		for (last = fd->block->statement_list; last; last  = last->next){
+			if (last->statement->type == RETURN_STATEMENT) {
+				return;
+			}
+		}
+		last_p = &last->next;
+	}
+	
+	Statement *ret = mgc_create_return_statement(NULL);
+	ret->line_number = fd->end_line_number;
+	fix_statement(fd->block, ret, fd, el_p);
+	*last_p = mgc_create_statement_list(ret);
+}
+
+static void fix_function(FunctionDefinition *fd){
+	ExceptionList *el = NULL;
+	ExceptionList *error_exception = NULL;
+	
+	add_parameter_as_declaration(fd);
+	fix_type_specifier(fd->type);
+	fix_thorws(fd->throws);
+	
+	if (fd->block) {
+		fix_statement_list(fd->block, fd->block->statement_list, fd, &el);
+		add_return_statement(fd, &el);
+	}
+	
+	if (!check_throws(fd->throws, el, &error_exception)) {
+		mgc_compile_error(fd->end_line_number, EXCEPTION_HAS_TO_BE_THROWN_ERR, STRING_MESSAGE_ARGUMENT, "name", error_exception->exception->identifer, MESSAGE_ARGUMENT_END);
+	}
+	
+}
+
+static void add_super_interface(ClassDefinition *cd){
+	
+	ExtendsList *tail = NULL;
+	for (tail = cd->interface_list; tail->next; tail = tail->next)
+		;
+	for (ClassDefinition *super = cd->super_class; super; super = super->super_class) {
+		for (ExtendsList *pos = super->interface_list; pos;pos = pos->next) {
+			ExtendsList *temp = mgc_malloc(sizeof(ExtendsList));
+			*temp = *pos;
+			temp->next = NULL;
+			if (tail) {
+				tail->next = temp;
+			}else{
+				cd->interface_list = temp;
+			}
+			tail = temp;
+		}
+	}
+}
+
+static void fix_extends(ClassDefinition *cd){
+	for (ExtendsList *extend_pos = cd->extends; extend_pos; extend_pos = extend_pos->next) {
+		size_t index = 0;
+		ClassDefinition *super = search_and_add(cd->line_number, cd->name, &index);
+		
+		ExtendsList *last_interface = NULL;
+		extend_pos->class_definition = super;
+		if (super->class_or_interface == DVM_CLASS_DEFINITION) {
+			if (cd->super_class) {
+				mgc_compile_error(cd->line_number, MULTIPLE_INHERITANCE_ERR, STRING_MESSAGE_ARGUMENT, "name", super->name, MESSAGE_ARGUMENT_END);
+			}
+			
+			if (!super->is_abstract) {
+				mgc_compile_error(cd->line_number, INHERIT_CONCRETE_CLASS_ERR, STRING_MESSAGE_ARGUMENT, "name", super->name, MESSAGE_ARGUMENT_END);
+			}
+			
+			cd->super_class = super;
+			
+		}else{
+			DBG_assert(super->class_or_interface == DVM_INTERFACE_DEFINITION, "super...%d",super->class_or_interface);
+			ExtendsList *temp = mgc_malloc(sizeof(ExtendsList));
+			*temp = *extend_pos;
+			temp->next = NULL;
+			
+			if (last_interface == NULL) {
+				cd->interface_list = temp;
+			}else{
+				last_interface->next = temp;
+			}
+			
+			last_interface = temp;
+		}
+	}
+}
+
+
+static void add_default_constructor(ClassDefinition *cd){
+	MemberDeclaration *last_member = NULL;
+	for (last_member = cd->member; last_member; last_member = last_member->next) {
+		if (last_member->kind == METHOD_MEMBER && last_member->u.method.is_constructor) {
+			return;
+		}
+		if (last_member->next == NULL) {
+			break;
+		}
+	}
+	
+	TypeSpecifier *type = mgc_alloc_type_specifier(DVM_VOID_TYPE);
+	Block *block = mgc_alloc_block();
+	ClassOrMemberModifierList v_modifier = mgc_create_class_or_member_modifier(VIRTUAL_MODIFIER);
+	ClassOrMemberModifierList p_modifier = mgc_create_class_or_member_modifier(PUBLIC_MODIFIER);
+	ClassOrMemberModifierList modifier = mgc_chain_class_or_member_modifier(v_modifier,p_modifier);
+	if (cd->super_class) {
+		ClassOrMemberModifierList o_modifier = mgc_create_class_or_member_modifier(OVERRIDE_MODIFIER);
+		modifier = mgc_chain_class_or_member_modifier(modifier, o_modifier);
+		Expression *super = mgc_create_super_expression();
+		Expression *method = mgc_create_member_expression(super, DEFAULT_CONSTRUCTOR_NAME);
+		Expression *call = mgc_create_function_call_expression(method, NULL);
+		Statement *statement = mgc_alloc_statement(EXPRESSION_STATEMENT);
+		statement->u.expression_s = call;
+		block->statement_list= mgc_create_statement_list(statement);
+	}else{
+		block->statement_list = NULL;
+	}
+	
+    FunctionDefinition *fd	= mgc_create_function_definition(type, DEFAULT_CONSTRUCTOR_NAME, NULL, NULL, block);
+	MemberDeclaration *member = mgc_create_method_member(&modifier, fd, DVM_TRUE);
+	
+	if (last_member) {
+		last_member->next = member;
+	}else{
+		cd->member = member;
+	}
+ 
+}
+
+
+static void get_super_field_method_count(ClassDefinition *cd, size_t *field_index_out, size_t *method_index_out){
+	size_t field_index = -1;
+	size_t method_index = -1;
+	for (ClassDefinition *class_pos = cd->super_class; class_pos; class_pos = class_pos->next) {
+		for (MemberDeclaration *member_pos = class_pos->member; member_pos; member_pos = member_pos->next) {
+			if (member_pos->kind == METHOD_MEMBER) {
+				if (member_pos->u.method.method_index > method_index || method_index == (size_t)-1) {
+					method_index = member_pos->u.method.method_index;
+				}
+    
+			}else{
+				DBG_assert(member_pos->kind == FIELD_MEMBER, "member_pos->kind..%d",member_pos->kind);
+				if (member_pos->u.field.field_index > field_index || field_index == (size_t)-1) {
+					field_index = member_pos->u.field.field_index ;
+				}
+				
+			}
+		}
+	}
+	*field_index_out = field_index + 1;
+	*method_index_out = method_index + 1;
+
+}
+
+
+static MemberDeclaration *search_member_in_super(ClassDefinition *cd, char *member_name){
+	MemberDeclaration *member = NULL;
+	if (cd->super_class) {
+		member = mgc_search_member(cd->super_class, member_name);
+	}
+	if (member) {
+		return member;
+	}
+	
+	for (ExtendsList *pos = cd->interface_list; pos; pos = pos->next) {
+		member = mgc_search_member(pos->class_definition, member_name);
+		if (member_name) {
+			return member;
+		}
+	}
+	
+	return NULL;
+}
+
+static void check_method_override(MemberDeclaration *super_method, MemberDeclaration *sub_method){
+	if (sub_method->access_modifier < sub_method->access_modifier) {
+		mgc_compile_error(sub_method->line_number, OVERRIDE_METHOD_ACCESSIBILITY_ERR, STRING_MESSAGE_ARGUMENT, "name", sub_method->u.method.function_definition->name, MESSAGE_ARGUMENT_END);
+	}
+	
+	if (!sub_method->u.method.is_constructor) {
+		check_func_compatibility(super_method->u.method.function_definition, sub_method->u.method.function_definition);
+	}
+}
+
+
+
+
 
 
 

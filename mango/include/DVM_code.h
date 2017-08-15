@@ -132,9 +132,9 @@ typedef struct {
 
 
 typedef enum {
+	DVM_PRIVATE_MODIFIER ,
 	DVM_FILE_MODIFIER,
-	DVM_PUBLIC_MODIFIER,
-	DVM_PRIVATE_MODIFIER
+	DVM_PUBLIC_MODIFIER
 }DVM_AccessModifier;
 
 

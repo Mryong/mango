@@ -657,7 +657,7 @@ typedef enum {
 	TRY_STATEMENT,
 	THROW_STATEMENT,
 	DECLARATION_STATEMENT,
-	STATEMENT_TYPE_CONT_PLUS_1
+	STATEMENT_TYPE_COUNT_PLUS_1
 }StatementType;
 
 struct Statement_tag {
@@ -732,7 +732,7 @@ typedef struct {
 	DVM_Boolean			is_virtual;
 	DVM_Boolean			is_override;
 	FunctionDefinition	*function_definition;
-	int					method_index;
+	size_t					method_index;
 	
 }MethodMember;
 

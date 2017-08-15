@@ -24,6 +24,15 @@ int main(int argc,char * argv[]){
 	
 	setlocale(LC_CTYPE, "zh_CN.UTF-8");
 	
+	size_t a = -1;
+	int b = 2;
+	size_t c = 0;
+	if (a > c) {
+		printf("1");
+	}else{
+	 printf("2");
+	}
+	
 	
 	
 	
