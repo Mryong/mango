@@ -742,7 +742,7 @@ typedef struct {
 	TypeSpecifier	*type;
 	DVM_Boolean		is_final;
 	Expression		*initializer;
-	int				field_index;
+	size_t				field_index;
 }FieldMember;
 
 struct MemberDeclaration_tag{
@@ -811,7 +811,7 @@ struct EnumDefinition_tag{
 	PackageName		*package_name;
 	char			*name;
 	Enumerator		*enumerator;
-	int				index;
+	size_t				index;
 	EnumDefinition	*next;
 };
 
@@ -820,7 +820,7 @@ struct ConstantDefinition_tag {
 	TypeSpecifier		*type;
 	char				*name;
 	Expression			*initializer;
-	int					index;
+	size_t					index;
 	int					line_number;
 	ConstantDefinition	*next;
 };

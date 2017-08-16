@@ -179,6 +179,25 @@ static DVM_Boolean is_super_class(ClassDefinition *child, ClassDefinition *paren
 	return b;
 }
 
+static DVM_Boolean check_type_compatibility(TypeSpecifier *super_type, TypeSpecifier *sub_type){
+	if (!mgc_is_class_object(super_type)) {
+		return mgc_equal_type(super_type, sub_type);
+	}
+	
+	if (!mgc_is_class_object(sub_type)) {
+		return DVM_FALSE;
+	}
+	
+	if (sub_type->u.class_ref.class_definition == super_type->u.class_ref.class_definition
+		|| is_super_class(sub_type->u.class_ref.class_definition, super_type->u.class_ref.class_definition, NULL, NULL)) {
+		return DVM_TRUE;
+	}
+	
+	return DVM_FALSE;
+	
+	
+}
+
 static DVM_Boolean is_exception_class(ClassDefinition *cd){
 	
 	ClassDefinition *excepion_class = mgc_search_class(EXCEPTION_CLASS_NAME);
@@ -793,11 +812,11 @@ static Expression *eval_compare_expression(Expression *expr){
 											   expr->u.binary_expression.right->u.boolean_value);
 	}else if (expr->u.binary_expression.left->kind == INT_EXPRESSION
 			  && expr->u.binary_expression.right->kind == INT_EXPRESSION){
-		expr = eval_math_expression_int(expr, expr->u.binary_expression.left->u.int_value,
+		expr = eval_compare_expression_double(expr, expr->u.binary_expression.left->u.int_value,
 										expr->u.binary_expression.right->u.int_value);
 	}else if (expr->u.binary_expression.left->kind == INT_EXPRESSION
 			  && expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION){
-		expr = eval_math_expression_double(expr, expr->u.binary_expression.left->u.int_value,
+		expr = eval_compare_expression_double(expr, expr->u.binary_expression.left->u.int_value,
 										expr->u.binary_expression.right->u.double_value);
 	}else if (expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION
 			  && expr->u.binary_expression.left->kind == INT_EXPRESSION){
@@ -805,7 +824,7 @@ static Expression *eval_compare_expression(Expression *expr){
 										expr->u.binary_expression.right->u.int_value);
 	}else if (expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION
 			  && expr->u.binary_expression.left->kind == DOUBLE_EXPRESSION){
-		expr = eval_math_expression_double(expr, expr->u.binary_expression.left->u.double_value,
+		expr = eval_compare_expression_double(expr, expr->u.binary_expression.left->u.double_value,
 										expr->u.binary_expression.right->u.double_value);
 	}else if (expr->u.binary_expression.left->kind == STRING_EXPRESSION
 			  && expr->u.binary_expression.left->kind == STRING_EXPRESSION){
@@ -904,6 +923,21 @@ static Expression *fix_bit_not_expression(Block *current_block, Expression *expr
 	return expr;
 }
 
+static Expression *fix_logical_not_expression(Block *current_block, Expression *expr, ExceptionList **el_p){
+	expr->u.logic_not = fix_expression(current_block, expr->u.logic_not, expr, el_p);
+	
+	if (!mgc_is_boolean(expr->u.logic_not->type)) {
+		mgc_compile_error(expr->line_number, LOGICAL_NOT_TYPE_MISMATCH_ERR, MESSAGE_ARGUMENT_END);
+	}
+	
+	if (expr->u.logic_not->kind == BOOLEAN_EXPRESSION) {
+		expr->u.boolean_value = !expr->u.boolean_value;
+	}
+	expr->type = expr->u.logic_not->type;
+	return expr;
+	
+	
+}
 
 static void check_argument(Block *current_block, int line_number,
 						   ParameterList *param_list, ArgumentList *argument_list,
@@ -933,7 +967,7 @@ static void check_argument(Block *current_block, int line_number,
 }
 
 
-static ClassDefinition *search_and_add(int line_number, char *name, size_t *class_index){
+static ClassDefinition *search_class_and_add(int line_number, char *name, size_t *class_index){
 	ClassDefinition *cd = mgc_search_class(name);
 	if (cd == NULL) {
 		mgc_compile_error(line_number, CLASS_NOT_FOUND_ERR,STRING_MESSAGE_ARGUMENT,"name",name,MESSAGE_ARGUMENT_END);
@@ -1201,7 +1235,7 @@ static Expression *fix_member_expression(Block *current_block, Expression *expr,
 	if (mgc_is_array(obj->type)) {
 		fix_array_mothod_expresion(expr, obj, expr->u.member_expression.member_name);
 	}else if (mgc_is_string(obj->type)){
-		fix_array_mothod_expresion(expr, obj, expr->u.member_expression.member_name);
+		fix_string_method_expression(expr, obj, expr->u.member_expression.member_name);
 	}else if (mgc_is_class_object(obj->type)){
 		fix_class_member_expression(expr, obj, expr->u.member_expression.member_name);
 	}else{
@@ -1371,7 +1405,7 @@ static Expression *fix_down_cast_expression(Block *current_block, Expression *ex
 
 static Expression *fix_new_expression(Block *current_block, Expression *expr, ExceptionList **el_p){
 	size_t index = -1;
-	ClassDefinition *cd = search_and_add(expr->line_number, expr->u.new_e.class_name, &index);
+	ClassDefinition *cd = search_class_and_add(expr->line_number, expr->u.new_e.class_name, &index);
 	expr->u.new_e.class_definition = cd;
 	expr->u.new_e.class_index = index;
 	
@@ -1976,7 +2010,7 @@ static void add_super_interface(ClassDefinition *cd){
 static void fix_extends(ClassDefinition *cd){
 	for (ExtendsList *extend_pos = cd->extends; extend_pos; extend_pos = extend_pos->next) {
 		size_t index = 0;
-		ClassDefinition *super = search_and_add(cd->line_number, cd->name, &index);
+		ClassDefinition *super = search_class_and_add(cd->line_number, cd->name, &index);
 		
 		ExtendsList *last_interface = NULL;
 		extend_pos->class_definition = super;
@@ -2105,20 +2139,152 @@ static void check_method_override(MemberDeclaration *super_method, MemberDeclara
 }
 
 
+static void fix_class_list(MGC_Compiler *compiler){
+	for (ClassDefinition *pos = compiler->class_definition_list; pos; pos = pos->next) {
+		add_class(pos);
+		fix_extends(pos);
+	}
+	
+	for (ClassDefinition *pos = compiler->class_definition_list; pos; pos = pos->next) {
+		add_super_interface(pos);
+	}
+	
+	for (ClassDefinition *pos = compiler->class_definition_list; pos; pos = pos->next) {
+		compiler->current_class_definition = pos;
+		add_default_constructor(pos);
+		compiler->current_class_definition = NULL;
+	}
+	
+	for (ClassDefinition *class_pos = compiler->class_definition_list; class_pos; class_pos = class_pos->next) {
+		compiler->current_class_definition = class_pos;
+		size_t field_index = 0;
+		size_t method_index = 0;
+		get_super_field_method_count(class_pos, &field_index, &method_index);
+		MemberDeclaration *abstract_method = NULL;
+		for (MemberDeclaration *member_pos = class_pos->member; member_pos; member_pos = member_pos->next) {
+			if (member_pos->kind == METHOD_MEMBER) {
+				MemberDeclaration *super_member = search_member_in_super(class_pos, member_pos->u.method.function_definition->name);
+				if (super_member) {
+					fix_function(member_pos->u.method.function_definition);
+					if (super_member->kind == FIELD_MEMBER) {
+						mgc_compile_error(member_pos->line_number, FIELD_VOERRIDED_ERR, STRING_MESSAGE_ARGUMENT, "name",
+										  super_member->u.field.name, MESSAGE_ARGUMENT_END);
+					}
+					if (!super_member->u.method.is_virtual) {
+						mgc_compile_error(member_pos->line_number, NON_VIRTUAL_METHOD_OVERRIDED_ERR, STRING_MESSAGE_ARGUMENT, "name",
+										  super_member->u.method.function_definition->name, MESSAGE_ARGUMENT_END);
+					}
+					
+					if (!member_pos->u.method.is_override) {
+						mgc_compile_error(member_pos->line_number, NEED_OVERRIDED_ERR, STRING_MESSAGE_ARGUMENT, "name",
+										  member_pos->u.method.function_definition->name, MESSAGE_ARGUMENT_END);
+					}
+					
+					check_method_override(super_member, member_pos);
+					member_pos->u.method.method_index = super_member->u.method.method_index;
+					
+				}else{
+					member_pos->u.method.method_index = method_index;
+					method_index++;
+				}
+				if (member_pos->u.method.is_abstract) {
+					abstract_method = member_pos;
+				}
+				
+			}else{
+				DBG_assert(member_pos->kind == FIELD_MEMBER, "member_pos->kind..%d",member_pos->kind);
+				MemberDeclaration *super_member = search_member_in_super(class_pos, member_pos->u.method.function_definition->name);
+				if (super_member) {
+					mgc_compile_error(member_pos->line_number, FIELD_NAME_DUPLICATE_ERR, STRING_MESSAGE_ARGUMENT, "name",
+									  member_pos->u.field.name, MESSAGE_ARGUMENT_END);
+				}
+				member_pos->u.field.field_index = field_index;
+				field_index++;
+				fix_type_specifier(member_pos->u.field.type);
+				if (member_pos->u.field.initializer) {
+					ExceptionList *el = NULL;
+					Expression *temp = fix_expression(NULL, member_pos->u.field.initializer, NULL, &el);
+					member_pos->u.field.initializer = create_assign_cast(temp, member_pos->u.field.type);
+					
+				}
+			}
+			
+		}
+		
+		if (abstract_method && !class_pos->is_abstract) {
+			mgc_compile_error(abstract_method->line_number, ABSTRACT_METHOD_IN_CONCRETE_CLASS_ERR, STRING_MESSAGE_ARGUMENT, "method_name",
+							  abstract_method->u.method.function_definition->name, MESSAGE_ARGUMENT_END);
+		}
+		compiler->current_class_definition = NULL;
+	}
+
+}
+
+static void fix_enum_list(MGC_Compiler *compiler){
+	for (EnumDefinition *enum_pos = compiler->enum_definition_list; enum_pos; enum_pos = enum_pos) {
+		enum_pos->index = reserve_enum_index(compiler, enum_pos, DVM_TRUE);
+	}
+}
 
 
 
+static void fix_delegate_list(MGC_Compiler *compiler){
+	for (DelegateDefinition *delegate_pos = compiler->delegate_definition_list; delegate_pos; delegate_pos = delegate_pos->next) {
+		fix_type_specifier(delegate_pos->type);
+		fix_parameter_list(delegate_pos->parameter_list);
+		fix_thorws(delegate_pos->throws);
+	}
+}
 
-
-
-
-
-
-
-
+static void fix_constant_list(MGC_Compiler *compiler){
+	ExceptionList *el = NULL;
+	for (ConstantDefinition *constant_pos = compiler->constant_definition_list; constant_pos; constant_pos = constant_pos->next) {
+		constant_pos->initializer = fix_expression(NULL, constant_pos->initializer, NULL, &el);
+		if (constant_pos->type == NULL) {
+			constant_pos->type = constant_pos->initializer->type;
+		}
+		constant_pos->index = reserve_constant_idnex(compiler, constant_pos, DVM_TRUE);
+	}
+}
 
 
 
 void mgc_fix_tree(MGC_Compiler *compiler){
-
+	
+	fix_class_list(compiler);
+	fix_enum_list(compiler);
+	fix_delegate_list(compiler);
+	fix_constant_list(compiler);
+	
+	
+	
+	for (FunctionDefinition *func_pos = compiler->function_list; func_pos; func_pos = func_pos->next) {
+		reserve_function_index(compiler, func_pos);
+	}
+	ExceptionList *el = NULL;
+	fix_statement_list(NULL, compiler->statement_list, NULL, &el);
+	
+	for (FunctionDefinition *func_pos = compiler->function_list; func_pos; func_pos = func_pos->next) {
+		if (func_pos->class_definition == NULL) {
+			fix_function(func_pos);
+		}
+	}
+	
+	size_t decl_count = 0;
+	for (DeclarationList *dl  = compiler->declaration_list; dl; dl = dl->next) {
+		dl->declaration->variable_index = decl_count++;
+	}
+	
 }
+
+
+
+
+
+
+
+
+
+
+
+
