@@ -2,7 +2,7 @@ TARGET = share.o
 CC = gcc
 CFLAGS  = -c -g -Wall -DEBUG
 INCLUDE = -I../include
-OBJS = wchar.o util.o
+OBJS = wchar.o util.o opcode.o
 
 ${TARGET}:${OBJS}
 	ld -r -o $@ ${OBJS}
@@ -13,4 +13,5 @@ clean:
 
 wchar.o: wchar.c ../include/DVM.h
 util.o: util.c ../include/DVM.h
+opcode.o: opcode.c ../include/share.h
 

@@ -51,6 +51,12 @@ typedef enum {
 #define BUG_EXCEPTION_CLASS "BugException"
 #define RUNTIME_EXCEPTION_CLASS "RuntimeException"
 
+typedef struct {
+	char	*mnemonic;
+	char	*parameter;
+	size_t	stack_increment;
+}OpcodeInfo;
+
 
 
 /* wchar.c */

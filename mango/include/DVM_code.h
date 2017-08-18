@@ -44,7 +44,7 @@ typedef enum {
 
 
 typedef struct {
-	int					parameter_count;
+	size_t					parameter_count;
 	DVM_LocalVariable	*parameter;
 }DVM_FunctionDerive;
 
@@ -65,17 +65,17 @@ struct DVM_TypeSpecifier_tag{
 	DVM_BaseType		base_type;
 	union{
 		struct{
-			int index;
+			size_t index;
 		}class_t;
 		struct{
-			int dummmy;
+			size_t dummmy;
 		}delegate_t;
 		struct{
-			int index;
+			size_t index;
 		}enum_t;
 	}u;
-	int derive_count;
-	DVM_TypeSpecifier *derive;
+	size_t derive_count;
+	DVM_TypeDerive *derive;
 };
 
 typedef enum {
@@ -84,36 +84,36 @@ typedef enum {
 
 
 typedef struct {
-	int		line_number;
-	int		start_pc;
-	int		pc_count;
+	size_t		line_number;
+	size_t		start_pc;
+	size_t		pc_count;
 }DVM_LineNumber;
 
 
 typedef struct {
-	int		class_index;
-	int		start_pc;
-	int		pc_count;
+	size_t		class_index;
+	size_t		start_pc;
+	size_t		pc_count;
 }DVM_CatchClause;
 
 typedef struct {
-	int					try_start_pc;
-	int					try_end_pc;
-	int					catch_count;
+	size_t					try_start_pc;
+	size_t					try_end_pc;
+	size_t					catch_count;
 	DVM_CatchClause		*catch_clause;
-	int					finally_start_pc;
-	int					finally_end_pc;
+	size_t					finally_start_pc;
+	size_t					finally_end_pc;
 }DVM_Try;
 
 
 
 typedef struct {
-	int				code_size;
+	size_t				code_size;
 	DVM_Byte		*code;
-	int				line_number_size;
-	int				try_size;
+	size_t				line_number_size;
+	size_t				try_size;
 	DVM_Try			*try;
-	int				need_stack_size;
+	size_t				need_stack_size;
 }DVM_CodeBlock;
 
 
@@ -174,11 +174,11 @@ typedef struct {
 	char					*name;
 	DVM_Boolean				is_implemented;
 	DVM_ClassIdentifier		*super_class;
-	int						interface_count;
+	size_t						interface_count;
 	DVM_ClassIdentifier		*interface_;
-	int						field_count;
+	size_t						field_count;
 	DVM_Field				*field;
-	int						method_count;
+	size_t						method_count;
 	DVM_Method				*method;
 	DVM_CodeBlock			field_initializer;
 
@@ -230,19 +230,19 @@ struct DVM_Executable_tag{
 	char				*package_name;
 	DVM_Boolean			is_required;
 	char				*path;
-	int					constant_pool_count;
+	size_t					constant_pool_count;
 	DVM_ConstantPool	*constant_pool;
-	int					global_variable_count;
+	size_t					global_variable_count;
 	DVM_Variable		*global_variable;
-	int					function_count;
+	size_t					function_count;
 	DVM_Function		*function;
-	int					type_specifier_count;
+	size_t					type_specifier_count;
 	DVM_TypeSpecifier	*type_specifier;
-	int					class_count;
+	size_t					class_count;
 	DVM_Class			*class_definition;
-	int					enum_count;
+	size_t					enum_count;
 	DVM_Enum			*enum_definition;
-	int					constant_count;
+	size_t					constant_count;
 	DVM_Constant		*constant_definition;
 	DVM_CodeBlock		top_level;
 	DVM_CodeBlock		constant_initializer;

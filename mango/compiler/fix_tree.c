@@ -998,7 +998,33 @@ static DVM_Boolean is_ignoreable_exception(ExceptionList *ex){
 
 
 static void add_exception(ExceptionList **el_p, ExceptionList  *throws){
-
+	ExceptionList *new_list = NULL;
+	ExceptionList *pos;
+	ExceptionList *prev;
+	ExceptionList *new_item;
+	
+	for (prev = NULL, pos = throws; pos; prev = pos, pos = pos->next) {
+		if (is_ignoreable_exception(pos))
+			continue;
+		new_item = mgc_malloc(sizeof(ExceptionList));
+		new_item->exception = pos->exception;
+		new_item->next = NULL;
+		if (prev) {
+			prev->next = new_item;
+		} else {
+			new_list = new_item;
+		}
+	}
+	
+	if (*el_p == NULL) {
+		*el_p = new_list;
+	} else {
+		if (throws) {
+			for (pos = throws; pos->next; pos = pos->next)
+				;
+			pos->next = new_list;
+		}
+	}
 }
 
 static void remove_exception(ExceptionList **el_p, ClassDefinition *cached){
