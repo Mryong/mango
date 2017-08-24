@@ -311,7 +311,7 @@ typedef struct {
 	char			*name;
 	Expression		*initializer;
 	DVM_Boolean		is_final;
-	size_t				variable_index;
+	size_t			variable_index;
 	DVM_Boolean		is_loacl;
 }Declaration;
 

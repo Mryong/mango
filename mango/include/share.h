@@ -10,6 +10,7 @@
 #define share_h
 
 #include "DVM.h"
+#include <wctype.h>
 
 
 typedef enum {

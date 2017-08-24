@@ -74,7 +74,7 @@ static BuildInMethod st_string_method[] = {
 };
 
 
-static FunctionDefinition *create_build_in_method(BuildInMethod *src, int method_count){
+static FunctionDefinition *create_build_in_method(BuildInMethod *src, size_t method_count){
 	FunctionDefinition *fd_array = mgc_malloc(sizeof(FunctionDefinition) * method_count);
 	for (int i = 0; i < method_count; i++) {
 		BuildInMethod build_in_method = src[i];
