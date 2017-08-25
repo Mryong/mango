@@ -273,6 +273,27 @@ static int get_opcode_type_offset(TypeSpecifier *type){
 	return 0;
 }
 
+static int
+get_binary_expression_offset(Expression *left, Expression *right,
+							 DVM_Opcode code)
+{
+	int offset;
+	
+	if ((left->kind == NULL_EXPRESSION && right->kind != NULL_EXPRESSION)
+		|| (left->kind != NULL_EXPRESSION && right->kind == NULL_EXPRESSION)) {
+		offset = 2; /* object type */
+		
+	} else if ((code == DVM_EQ_INT || code == DVM_NE_INT)
+			   && mgc_is_string(left->type)) {
+		offset = 3; /* string type */
+		
+	} else {
+		offset = get_opcode_type_offset(left->type);
+	}
+	
+	return offset;
+}
+
 
 static void generate_variable_identifier_expression(Declaration *decl, OpcodeBuf *ob, int line_number){
 	
@@ -436,7 +457,7 @@ static size_t get_method_index(MemberExpression *member){
 	return index;
 }
 
-static void generate_method_call_expresssion(DVM_Executable *exe, Block *current_block, Expression *expr, OpcodeBuf *ob){
+static void generate_method_call_expression(DVM_Executable *exe, Block *current_block, Expression *expr, OpcodeBuf *ob){
 	generate_argument(exe, current_block, expr->u.function_call_expression.argument, ob);
 	MemberExpression *member = &expr->u.function_call_expression.function->u.member_expression;
 	generate_expression(exe, current_block, member->expression, ob);
@@ -451,7 +472,7 @@ static void generate_method_call_expresssion(DVM_Executable *exe, Block *current
 static void generate_function_call_expression(DVM_Executable *exe, Block *current_block, Expression *expr, OpcodeBuf *ob){
 	FunctionCallExpress *call_expr = &expr->u.function_call_expression;
 	if (call_expr->function->kind == MEMBER_EXPRESSION) {
-		generate_method_call_expresssion(exe, current_block, expr, ob);
+		generate_method_call_expression(exe, current_block, expr, ob);
 		return;
 	}
 	
@@ -784,6 +805,7 @@ static void generate_expression(DVM_Executable *exe, Block *current_block, Expre
 	
 
 }
+static void generate_statement_list(DVM_Executable *exe, Block *current_block, StatementList *statement_list, OpcodeBuf *ob);
 
 static void generate_expression_statement(DVM_Executable *exe, Block *block, Expression *expr, OpcodeBuf *ob){
 	if (expr->kind == ASSIGN_EXPRESSION) {
@@ -799,7 +821,134 @@ static void generate_expression_statement(DVM_Executable *exe, Block *block, Exp
 	
 }
 
-static void generate_statement_list(DVM_Executable *exe, Block *current_block, StatementList *statement_list, OpcodeBuf *ob){
+static void genereate_if_statement(DVM_Executable *exe, Block *block, Statement *if_s, OpcodeBuf *ob){
+	size_t false_label = get_label(ob);
+	size_t end_label = get_label(ob);
+	generate_expression(exe, block, if_s->u.if_s.condition, ob);
+	generate_code(ob, if_s->line_number, DVM_JUMP_IF_FALSE,false_label);
+	generate_statement_list(exe, if_s->u.if_s.then_block, if_s->u.if_s.then_block->statement_list, ob);
+	generate_code(ob, if_s->line_number, DVM_JUMP, end_label);
+	set_label(ob, false_label);
+	for (Elsif *pos = if_s->u.if_s.elsif_list; pos; pos = pos->next) {
+		false_label = get_label(ob);
+		generate_expression(exe, block, pos->condition, ob);
+		generate_code(ob, if_s->line_number, DVM_JUMP_IF_FALSE,false_label);
+		generate_statement_list(exe, pos->then_block, pos->then_block->statement_list, ob);
+		generate_code(ob, if_s->line_number, DVM_JUMP,end_label);
+		set_label(ob, false_label);
+	}
+	
+	if (if_s->u.if_s.else_block) {
+		generate_statement_list(exe, if_s->u.if_s.else_block, if_s->u.if_s.else_block->statement_list, ob);
+	}
+	set_label(ob, end_label);
+}
+
+
+static void generate_switch_statement(DVM_Executable *exe, Block *block, Statement *switch_s, OpcodeBuf *ob){
+	size_t end_label = get_label(ob);
+	generate_expression(exe, block, switch_s->u.switch_s.expression, ob);
+	for (CaseList *pos = switch_s->u.switch_s.case_list; pos; pos = pos->next) {
+		size_t case_start_label = get_label(ob);
+		size_t next_case_label = get_label(ob);
+		for (ExpressionList *expr_pos = pos->expression_list; expr_pos; expr_pos = expr_pos->next) {
+			generate_code(ob, switch_s->line_number, DVM_DUPLICATE);
+			generate_expression(exe, block, expr_pos->expression, ob);
+			int offset = get_binary_expression_offset(switch_s->u.switch_s.expression, expr_pos->expression, DVM_EQ_INT);
+			generate_code(ob, switch_s->line_number, DVM_EQ_INT + offset);
+			generate_code(ob, switch_s->line_number, DVM_JUMP_IF_TRUE, case_start_label);
+		}
+		generate_code(ob, switch_s->line_number, DVM_JUMP, next_case_label);
+		set_label(ob, case_start_label);
+		generate_statement_list(exe, pos->block, pos->block->statement_list, ob);
+		generate_code(ob, switch_s->line_number, DVM_JUMP, end_label);
+		set_label(ob, next_case_label);
+	}
+	
+	if (switch_s->u.switch_s.default_block) {
+		generate_statement_list(exe, switch_s->u.switch_s.default_block, switch_s->u.switch_s.default_block->statement_list, ob);
+	}
+	set_label(ob, end_label);
+	return;
+}
+
+
+static void generate_while_statement(DVM_Executable *exe, Block *block, Statement *while_s, OpcodeBuf *ob){
+	size_t break_label = get_label(ob);
+	size_t continue_label = get_label(ob);
+	size_t loop_label = get_label(ob);
+	while_s->u.while_s.block->parent.statement_info.break_label = break_label;
+	while_s->u.while_s.block->parent.statement_info.continue_label = continue_label;
+	set_label(ob, loop_label);
+	generate_expression(exe, block, while_s->u.while_s.condition, ob);
+	generate_code(ob, while_s->line_number, DVM_JUMP_IF_FALSE, break_label);
+	generate_statement_list(exe, while_s->u.while_s.block, while_s->u.while_s.block->statement_list, ob);
+	set_label(ob, continue_label);
+	generate_code(ob, while_s->line_number, DVM_JUMP);
+	set_label(ob, break_label);
+}
+
+
+static void genereate_do_while_statement(DVM_Executable *exe, Block *block, Statement *do_while_s, OpcodeBuf *ob){
+	size_t break_label = get_label(ob);
+	size_t continue_label = get_label(ob);
+	size_t loop_label = get_label(ob);
+	do_while_s->u.do_while_s.block->parent.statement_info.break_label = break_label;
+	do_while_s->u.do_while_s.block->parent.statement_info.continue_label = continue_label;
+	set_label(ob, loop_label);
+	generate_statement_list(exe, do_while_s->u.do_while_s.block, do_while_s->u.do_while_s.block->statement_list, ob);
+	set_label(ob, continue_label);
+	generate_expression(exe, block, do_while_s->u.do_while_s.condition, ob);
+	generate_code(ob, do_while_s->line_number, DVM_JUMP_IF_TRUE, loop_label);
+	set_label(ob, break_label);
+}
+
+
+
+static void genereate_for_statement(DVM_Executable *exe, Block *block, Statement *for_s, OpcodeBuf *ob){
+	if (for_s->u.for_s.init) {
+		generate_expression(exe, block, for_s->u.for_s.init, ob);
+	}
+	
+	size_t break_label = get_label(ob);
+	size_t continue_label = get_label(ob);
+	for_s->u.for_s.block->parent.statement_info.break_label = break_label;
+	for_s->u.for_s.block->parent.statement_info.continue_label = continue_label;
+	size_t loop_label = get_label(ob);
+	set_label(ob, loop_label);
+	if (for_s->u.for_s.condition) {
+		generate_expression(exe, block, for_s->u.for_s.condition, ob);
+		generate_code(ob, for_s->line_number, DVM_JUMP_IF_FALSE,break_label);
+	}
+	
+	generate_statement_list(exe, for_s->u.for_s.block, for_s->u.for_s.block->statement_list, ob);
+	set_label(ob, continue_label);
+	if (for_s->u.for_s.post) {
+		generate_expression(exe, block, for_s->u.for_s.post, ob);
+
+	}
+	generate_code(ob, for_s->line_number, DVM_JUMP,loop_label);
+	set_label(ob, break_label);
+	
+}
+
+static void generate_return_statement(DVM_Executable *exe, Block *block, Statement *return_s, OpcodeBuf *ob){
+	for (Block *pos = block; block; block = block->out_block) {
+		if (block->type == FUNCTION_BLOCK) {
+			break;
+		}
+		if (block->type == TRY_CLAUSE_BLOCK || block->type == CATCH_CLAUSE_BLOCK) {
+			generate_code(ob, return_s->line_number, DVM_GO_FINALLY,mgc_get_current_compiler()->current_finally_label);
+		}
+	}
+	
+	generate_expression(exe, block, return_s->u.return_s.return_value, ob);
+	generate_code(ob, return_s->line_number, DVM_RETURN);
+
+}
+
+static void generate_statement_list(DVM_Executable *exe, Block *current_block,
+									StatementList *statement_list, OpcodeBuf *ob){
 	for (StatementList *statement_pos = statement_list; statement_pos; statement_pos = statement_pos->next) {
 		Statement *statement = statement_pos->statement;
 		switch (statement->type) {

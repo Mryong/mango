@@ -524,14 +524,14 @@ typedef enum {
 
 typedef struct {
 	Statement	*statement;
-	int			continue_label;
-	int			break_label;
+	size_t			continue_label;
+	size_t			break_label;
 }StatementBlockInfo;
 
 
 typedef struct {
 	FunctionDefinition *function;
-	int					end_label;
+	size_t					end_label;
 }FunctionBlockInfo;
 
 typedef struct Block_tag{
