@@ -934,10 +934,10 @@ static void genereate_for_statement(DVM_Executable *exe, Block *block, Statement
 
 static void generate_return_statement(DVM_Executable *exe, Block *block, Statement *return_s, OpcodeBuf *ob){
 	for (Block *pos = block; block; block = block->out_block) {
-		if (block->type == FUNCTION_BLOCK) {
+		if (pos->type == FUNCTION_BLOCK) {
 			break;
 		}
-		if (block->type == TRY_CLAUSE_BLOCK || block->type == CATCH_CLAUSE_BLOCK) {
+		if (pos->type == TRY_CLAUSE_BLOCK || pos->type == CATCH_CLAUSE_BLOCK) {
 			generate_code(ob, return_s->line_number, DVM_GO_FINALLY,mgc_get_current_compiler()->current_finally_label);
 		}
 	}
@@ -946,6 +946,118 @@ static void generate_return_statement(DVM_Executable *exe, Block *block, Stateme
 	generate_code(ob, return_s->line_number, DVM_RETURN);
 
 }
+
+static void generate_break_statement(DVM_Executable *exe, Block *block, Statement *break_s, OpcodeBuf *ob){
+	DVM_Boolean in_finally = DVM_FALSE;
+	Block *loop_block = NULL;
+	for (loop_block = block; loop_block; loop_block = loop_block->out_block) {
+		if (loop_block->type == TRY_CLAUSE_BLOCK || loop_block->type == CATCH_CLAUSE_BLOCK) {
+			in_finally = DVM_TRUE;
+			continue;
+		}
+		
+		char *break_label = break_s->u.break_s.label;
+		
+		if (loop_block->type == FOR_STATEMENT_BLOCK) {
+			if (break_s == NULL) {
+				break;
+			}
+			char *for_label= loop_block->parent.statement_info.statement->u.for_s.label;
+			if (for_label != NULL && strcat(for_label, break_label)) {
+				break;
+			}
+		}else if (loop_block->type == WHILE_STATEMENT_BLOCK){
+			if (break_s == NULL) {
+				break;
+			}
+			
+			char *while_label= loop_block->parent.statement_info.statement->u.while_s.label;
+			if (while_label != NULL && strcat(while_label, break_label)) {
+				break;
+			}
+		
+		}else if (loop_block->type == DO_WHILE_STATEMENT_BLOCK){
+			if (break_s == NULL) {
+				break;
+			}
+			
+			char *do_while_label= loop_block->parent.statement_info.statement->u.do_while_s.label;
+			if (do_while_label != NULL && strcat(do_while_label, break_label)) {
+				break;
+			}
+		}
+	}
+	
+	if (loop_block == NULL) {
+		mgc_compile_error(break_s->line_number, LABEL_NOT_FOUND_ERR, STRING_MESSAGE_ARGUMENT, "label", break_s->u.break_s.label, MESSAGE_ARGUMENT_END);
+	}
+	
+	if (in_finally) {
+		generate_code(ob, break_s->line_number, DVM_GO_FINALLY,mgc_get_current_compiler()->current_finally_label);
+	}
+	
+	generate_code(ob, break_s->line_number, DVM_JUMP, loop_block->parent.statement_info.break_label);
+
+
+}
+
+
+
+static void generate_continue_statement(DVM_Executable *exe, Block *block, Statement *continue_s, OpcodeBuf *ob){
+	DVM_Boolean in_finally = DVM_FALSE;
+	Block *loop_block = NULL;
+	for (loop_block = block; loop_block; loop_block = loop_block->out_block) {
+		if (loop_block->type == TRY_CLAUSE_BLOCK || loop_block->type == CATCH_CLAUSE_BLOCK) {
+			in_finally = DVM_TRUE;
+			continue;
+		}
+		
+		char *continue_label = continue_s->u.break_s.label;
+		
+		if (loop_block->type == FOR_STATEMENT_BLOCK) {
+			if (continue_s == NULL) {
+				break;
+			}
+			char *for_label= loop_block->parent.statement_info.statement->u.for_s.label;
+			if (for_label != NULL && strcat(for_label, continue_label)) {
+				break;
+			}
+		}else if (loop_block->type == WHILE_STATEMENT_BLOCK){
+			if (continue_s == NULL) {
+				break;
+			}
+			
+			char *while_label= loop_block->parent.statement_info.statement->u.while_s.label;
+			if (while_label != NULL && strcat(while_label, continue_label)) {
+				break;
+			}
+			
+		}else if (loop_block->type == DO_WHILE_STATEMENT_BLOCK){
+			if (continue_s == NULL) {
+				break;
+			}
+			
+			char *do_while_label= loop_block->parent.statement_info.statement->u.do_while_s.label;
+			if (do_while_label != NULL && strcat(do_while_label, continue_label)) {
+				break;
+			}
+		}
+	}
+	
+	if (loop_block == NULL) {
+		mgc_compile_error(continue_s->line_number, LABEL_NOT_FOUND_ERR, STRING_MESSAGE_ARGUMENT, "label", continue_s->u.break_s.label, MESSAGE_ARGUMENT_END);
+	}
+	
+	if (in_finally) {
+		generate_code(ob, continue_s->line_number, DVM_GO_FINALLY,mgc_get_current_compiler()->current_finally_label);
+	}
+	
+	generate_code(ob, continue_s->line_number, DVM_JUMP, loop_block->parent.statement_info.continue_label);
+	
+	
+}
+
+
 
 static void generate_statement_list(DVM_Executable *exe, Block *current_block,
 									StatementList *statement_list, OpcodeBuf *ob){
