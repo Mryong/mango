@@ -85,6 +85,86 @@ static void init_code_buf(OpcodeBuf *code_buf){
 }
 
 
+static void fix_labels(OpcodeBuf *ob){
+	for (size_t i = 0; i < ob->size; i++) {
+		DVM_Opcode code = ob->code[i];
+		if (code == DVM_JUMP || code == DVM_JUMP_IF_TRUE || code == DVM_JUMP_IF_FALSE || code == DVM_GO_FINALLY) {
+			size_t index = (ob->code[i + 1 ] << 8) + ob->code[i + 2];
+			size_t address = ob->label_table[index].label_address;
+			ob->code[i + 1] = address >> 8;
+			ob->code[i + 2] = address & 0xff;
+			
+		}
+		
+		char *param = dvm_opcode_info[code].parameter;
+		
+		for (size_t j = 0; param[j] != '\0'; i++) {
+			switch (param[j]) {
+				case 'b':
+					i++;
+					break;
+				case 'p':
+				case 's':
+					i+=2;
+					break;
+					
+				default:
+					break;
+			}
+		}
+	}
+	
+}
+
+static DVM_Byte* fix_opcode_buf(OpcodeBuf *ob){
+	fix_labels(ob);
+	DVM_Byte *ret = MEM_realloc(ob->code, ob->size);
+	MEM_free(ob->label_table);
+	return ret;
+}
+
+static size_t calc_stack_size(OpcodeBuf *ob){
+	size_t count = 0;
+	for (size_t i = 0; i < ob->size; i++) {
+		DVM_Opcode code = ob->code[i];
+		size_t stack_increment = dvm_opcode_info[code].stack_increment;
+		if (stack_increment > 0) {
+			count += stack_increment;
+		}
+		char *param = dvm_opcode_info[code].parameter;
+		
+		for (size_t j = 0; param[j] != '\0'; i++) {
+			switch (param[j]) {
+				case 'b':
+					i++;
+					break;
+				case 'p':
+				case 's':
+					i+=2;
+					break;
+					
+				default:
+					break;
+			}
+		}
+	}
+	
+	return count;
+}
+
+static void copy_opcode_buf(DVM_CodeBlock *dest, OpcodeBuf *ob){
+	dest->code_size = ob->alloc_size;
+	dest->code = fix_opcode_buf(ob);
+	dest->line_number = ob->line_number;
+	dest->line_number_size = ob->line_number_size;
+	dest->try_size = ob->try_szie;
+	dest->try = ob->try;
+	dest->need_stack_size = calc_stack_size(ob);
+}
+
+
+
+
 static void add_line_number(OpcodeBuf *ob, int line_number, size_t start_pc){
 	if (ob->line_number == NULL
 		|| ob->line_number[ob->line_number_size - 1].line_number != line_number) {
@@ -324,17 +404,22 @@ static void generate_identifer_expression(DVM_Executable *exe, Block *cuurent_bl
 
 }
 
+static void genereate_pop_to_identifier(Declaration *decl,int line_number, OpcodeBuf *ob){
+	
+	if (decl->is_loacl) {
+		generate_code(ob, line_number, DVM_POP_STACK_INT + get_opcode_type_offset(decl->type), decl->variable_index);
+	}else{
+		generate_code(ob, line_number, DVM_POP_STATIC_INT + get_opcode_type_offset(decl->type), decl->variable_index);
+	}
+
+}
+
 
 
 
 static void generate_pop_to_lvalue(DVM_Executable *exe, Block *block, Expression *expr, OpcodeBuf *ob){
 	if (expr->kind == IDENTIFIER_EXPRESSION) {
-		Declaration *decl = expr->u.identifer_express.u.declaration;
-		if (decl->is_loacl) {
-			generate_code(ob, expr->line_number, DVM_POP_STACK_INT + get_opcode_type_offset(decl->type), decl->variable_index);
-		}else{
-			generate_code(ob, expr->line_number, DVM_POP_STATIC_INT + get_opcode_type_offset(decl->type), decl->variable_index);
-		}
+		genereate_pop_to_identifier(expr->u.identifer_express.u.declaration,expr->line_number, ob);
 	}else if (expr->kind == INDEX_EXPRESSION){
 		generate_expression(exe, block, expr->u.index_expression.array, ob);
 		generate_expression(exe, block, expr->u.index_expression.index, ob);
@@ -1003,6 +1088,7 @@ static void generate_break_statement(DVM_Executable *exe, Block *block, Statemen
 
 
 
+
 static void generate_continue_statement(DVM_Executable *exe, Block *block, Statement *continue_s, OpcodeBuf *ob){
 	DVM_Boolean in_finally = DVM_FALSE;
 	Block *loop_block = NULL;
@@ -1058,6 +1144,64 @@ static void generate_continue_statement(DVM_Executable *exe, Block *block, State
 }
 
 
+static void generate_try_statement(DVM_Executable *exe, Block *block, Statement *try_s, OpcodeBuf *ob){
+	MGC_Compiler *compiler = mgc_get_current_compiler();
+	DVM_Try dvm_try;
+	size_t backup_finally_label = compiler->current_finally_label;
+	compiler->current_finally_label = get_label(ob);
+	size_t after_finally_label = get_label(ob);
+	dvm_try.try_start_pc = ob->size;
+	generate_statement_list(exe, try_s->u.try_s.try_block, try_s->u.try_s.try_block->statement_list, ob);
+	generate_code(ob, try_s->line_number, DVM_GO_FINALLY,compiler->current_finally_label);
+	generate_code(ob, try_s->line_number, DVM_JUMP,after_finally_label);
+	dvm_try.try_end_pc = ob->size - 1;
+	size_t catch_count = 0;
+	for (CatchClause *catch_pos = try_s->u.try_s.catch_clause; catch_pos; catch_pos = catch_pos->next) {
+		catch_count ++;
+	}
+	dvm_try.catch_clause = MEM_malloc(sizeof(DVM_CatchClause) * catch_count);
+	size_t catch_index = 0;
+	for (CatchClause *catch_pos = try_s->u.try_s.catch_clause; catch_pos; catch_pos = catch_pos->next,catch_index++) {
+		dvm_try.catch_clause[catch_index].start_pc = ob->size;
+		dvm_try.catch_clause[catch_index].class_index = catch_pos->variable_declaration->type->u.class_ref.class_index;
+		genereate_pop_to_identifier(catch_pos->variable_declaration, catch_pos->line_number, ob);
+		generate_statement_list(exe, catch_pos->block, catch_pos->block->statement_list, ob);
+		generate_code(ob, try_s->line_number, DVM_GO_FINALLY,compiler->current_finally_label);
+		generate_code(ob, try_s->line_number, DVM_JUMP,after_finally_label);
+		dvm_try.catch_clause[catch_index].end_pc = ob->size - 1;
+	}
+	
+	set_label(ob, compiler->current_finally_label);
+	dvm_try.finally_start_pc = ob->size;
+	if (try_s->u.try_s.finally_block) {
+		generate_statement_list(exe, try_s->u.try_s.finally_block, try_s->u.try_s.finally_block->statement_list, ob);
+	}
+	dvm_try.finally_end_pc = ob->size - 1;
+	set_label(ob, after_finally_label);
+	
+	ob->try = MEM_realloc(ob->try, (ob->try_szie + 1) * sizeof(dvm_try));
+	ob->try[ob->try_szie] = dvm_try;
+	ob->try_szie++;
+	
+	compiler->current_finally_label = backup_finally_label;
+	
+	
+	
+	
+
+}
+
+
+static void generate_throw_statement(DVM_Executable *exe, Block *block, Statement *throw_s, OpcodeBuf *ob){
+	if (throw_s->u.throw_s.expression) {
+		generate_expression(exe, block, throw_s->u.throw_s.expression, ob);
+		generate_code(ob, throw_s->line_number, DVM_THROW);
+	}else{
+		generate_variable_identifier_expression(throw_s->u.throw_s.variable_declaration, ob, throw_s->line_number);
+		generate_code(ob, throw_s->line_number, DVM_RETHROW);
+	}
+}
+
 
 static void generate_statement_list(DVM_Executable *exe, Block *current_block,
 									StatementList *statement_list, OpcodeBuf *ob){
@@ -1067,7 +1211,37 @@ static void generate_statement_list(DVM_Executable *exe, Block *current_block,
 			case EXPRESSION_STATEMENT:
 				generate_expression_statement(exe, current_block, statement->u.expression_s, ob);
 				break;
-				
+			case IF_STATEMENT:
+				genereate_if_statement(exe, current_block, statement, ob);
+				break;
+			case SWITCH_STATEMENT:
+				generate_switch_statement(exe, current_block, statement, ob);
+				break;
+			case FOR_STATEMENT:
+				genereate_for_statement(exe, current_block, statement, ob);
+				break;
+			case FOREACH_STATEMENT:
+				break;
+			case WHILE_STATEMENT:
+				generate_while_statement(exe, current_block, statement, ob);
+				break;
+			case DO_WHILE_STATEMENT:
+				genereate_do_while_statement(exe, current_block, statement, ob);
+				break;
+			case RETURN_STATEMENT:
+				generate_return_statement(exe, current_block, statement, ob);
+				break;
+			case BREAK_STATEMENT:
+				generate_break_statement(exe, current_block, statement, ob);
+				break;
+			case CONTINUE_STATEMENT:
+				generate_continue_statement(exe, current_block, statement, ob);
+				break;
+			case TRY_STATEMENT:
+				generate_try_statement(exe, current_block, statement, ob);
+				break;
+			case THROW_STATEMENT:
+				generate_throw_statement(exe, current_block, statement, ob);
 			default:
 				break;
 		}
@@ -1077,6 +1251,8 @@ static void generate_statement_list(DVM_Executable *exe, Block *current_block,
 	
 }
 static DVM_LocalVariable* mgc_copy_local_variable(FunctionDefinition *fd,size_t parameter_count);
+
+
 static void add_function(DVM_Executable *exe, FunctionDefinition *fd, DVM_Function *dest, DVM_Boolean in_this_exe){
 	dest->type = mgc_conver_type_specifier(fd->type);
 	dest->parameter = conver_parameter_list(fd->parameter_list, &dest->parameter_count);
@@ -1085,6 +1261,12 @@ static void add_function(DVM_Executable *exe, FunctionDefinition *fd, DVM_Functi
 		dest->is_implemented = DVM_FALSE;
 		dest->local_variable_count = fd->local_variable_count - dest->parameter_count;
 		dest->locak_variable = mgc_copy_local_variable(fd, dest->parameter_count);
+		
+		OpcodeBuf ob;
+		init_code_buf(&ob);
+		
+		generate_statement_list(exe, fd->block, fd->block->statement_list, &ob);
+		copy_opcode_buf(&dest->code_block, &ob);
 		
 		
 	}else{
@@ -1194,7 +1376,27 @@ static DVM_Class *search_class(MGC_Compiler *compiler, ClassDefinition *cd){
 
 
 
-static void generate_field_initailizer(DVM_Executable *exe, ClassDefinition *cd, DVM_Class *dvm_class){}
+static void generate_field_initailizer(DVM_Executable *exe, ClassDefinition *cd, DVM_Class *dvm_class){
+	OpcodeBuf ob;
+	init_code_buf(&ob);
+	for (ClassDefinition *cd_pos = cd; cd_pos; cd_pos = cd_pos->super_class) {
+		for (MemberDeclaration *member_pos = cd_pos->member; member_pos; cd_pos = cd_pos->next) {
+			if (member_pos->kind == METHOD_MEMBER) {
+				continue;
+			}
+			
+			if (member_pos->u.field.initializer) {
+				generate_expression(exe, NULL, member_pos->u.field.initializer, &ob);
+				generate_code(&ob, member_pos->u.field.initializer->line_number, DVM_DUPLICATE_OFFSET, 1);
+				generate_code(&ob, member_pos->line_number, DVM_POP_FIELD_INT + get_opcode_type_offset(member_pos->u.field.type), member_pos->u.field.field_index);
+				
+			}
+		}
+	}
+	
+	copy_opcode_buf(&dvm_class->field_initializer, &ob);
+
+}
 
 static void add_class(DVM_Executable *exe, ClassDefinition *cd, DVM_Class *dest){
 
@@ -1290,10 +1492,28 @@ static void generate_top_level(MGC_Compiler *compiler, DVM_Executable *exe){
 	OpcodeBuf ob;
 	init_code_buf(&ob);
 	generate_statement_list(exe, NULL, compiler->statement_list, &ob);
+	exe->top_level.code_size = ob.size;
+	exe->top_level.code = fix_opcode_buf(&ob);
+	exe->top_level.line_number_size = ob.line_number_size;
+	exe->top_level.line_number = ob.line_number;
+	exe->top_level.try_size = ob.try_szie;
+	exe->top_level.try = ob.try;
+	exe->top_level.need_stack_size = calc_stack_size(&ob);
+	
 	
 }
 
 static void generate_constant_initailizer(MGC_Compiler *compiler, DVM_Executable *exe){
+	OpcodeBuf ob;
+	init_code_buf(&ob);
+	for (ConstantDefinition *const_pos = compiler->constant_definition_list; const_pos; const_pos = const_pos->next) {
+		if (const_pos->initializer) {
+			generate_expression(exe, NULL, const_pos->initializer, &ob);
+			generate_code(&ob, const_pos->line_number, DVM_POP_CONSTANT_INT + get_opcode_type_offset(const_pos->type), const_pos->index);
+		}
+	}
+	
+	copy_opcode_buf(&exe->constant_initializer,&ob);
 
 };
 	

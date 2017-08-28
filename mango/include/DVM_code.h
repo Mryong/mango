@@ -215,7 +215,7 @@ typedef struct {
 typedef struct {
 	size_t		class_index;
 	size_t		start_pc;
-	size_t		pc_count;
+	size_t		end_pc;
 }DVM_CatchClause;
 
 typedef struct {
@@ -233,6 +233,7 @@ typedef struct {
 	size_t				code_size;
 	DVM_Byte		*code;
 	size_t				line_number_size;
+	DVM_LineNumber		*line_number;
 	size_t				try_size;
 	DVM_Try			*try;
 	size_t				need_stack_size;

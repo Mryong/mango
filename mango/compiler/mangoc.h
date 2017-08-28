@@ -865,7 +865,7 @@ struct MGC_Compiler_tag{
 	ClassDefinition		*current_class_definition;
 	TryStatement		*current_try_statement;
 	CatchClause			*current_catch_clause;
-	size_t					*current_finally_label;
+	size_t					current_finally_label;
 	InputMode			input_mode;
 	CompilerList		*required_list;
 	size_t					array_method_count;
