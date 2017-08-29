@@ -26,18 +26,7 @@ int main(int argc,char * argv[]){
 	
 	
 	setlocale(LC_CTYPE, "zh_CN.UTF-8");
-	int b = test();
-//	
-//	size_t a = -1;
-//	int b = 2;
-//	size_t c = 0;
-//	if (a > c) {
-//		printf("1");
-//	}else{
-//	 printf("2");
-//	}
-//	
-	
+
 	
 	
 	
@@ -53,7 +42,9 @@ int main(int argc,char * argv[]){
     FILE *fp = fopen(argv[1], "r");
 
 	MGC_Compiler *compler = mgc_create_compiler();
-	mgc_compile(compler, fp, argv[1]);
+	DVM_ExecutableList *list = mgc_compile(compler, fp, argv[1]);
+	
+	
 	
 	
 
