@@ -7,7 +7,9 @@ OBJS = main.o\
  ../memory/men.o\
  ../share/share.o\
  ../debug/dbg.o\
- ../compiler/buildin/buildin.o
+ ../compiler/buildin/buildin.o\
+ ../dvm/dvm.o
+
 
 ${TARGET}:${OBJS}
 	${CC} -o $@  ${OBJS} -ll
@@ -35,4 +37,6 @@ main.o: main.c ../include/MEM.h
 	cd ../debug;${MAKE}
 ../compiler/buildin/buildin.o:
 	cd ../compiler/buildin;${MAKE}
+../dvm/dvm.o:
+	cd ../dvm;${MAKE}
 
