@@ -12,7 +12,7 @@
 
 typedef struct DVM_Context_tag DVM_Context;
 
-typedef DVM_Value DVM_NativeFunctionProc(DVM_VirtualMachine *vm, DVM_Context *ctx, int argc, DVM_Value *argv);
+typedef DVM_Value DVM_NativeFunctionProc(DVM_VirtualMachine *vm, DVM_Context *ctx, size_t argc, DVM_Value *argv);
 typedef DVM_Value DVM_NativePointerFinalizeProc(DVM_VirtualMachine *vm, DVM_Object *obj);
 typedef struct {
 	char *name;

@@ -1,5 +1,5 @@
 TARGET = dvm.o
-OBJS = load.o
+OBJS = load.o native.o
 CC = gcc
 CFLAGS = -c -Wall -DEBUG -I../include
 
@@ -13,4 +13,5 @@ ${TARGET}: ${OBJS}
 clean:
 	-rm ${TARGET} ${OBJS}
 
-load.o: load.c dvm_pri.h ../include/DVM.h 
+load.o: load.c dvm_pri.h ../include/DVM.h
+native.o: native.c 
