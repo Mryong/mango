@@ -7,3 +7,8 @@
 //
 
 #include <stdio.h>
+#include "dvm_pri.h"
+
+size_t dvm_array_size(DVM_VirtualMachine *dvm, DVM_Object *array){
+	return array->u.array.size;
+}

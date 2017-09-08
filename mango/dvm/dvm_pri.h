@@ -19,7 +19,18 @@
 #define NULL_STRING (L"null")
 #define TRUE_STRING (L"true")
 #define FALSE_STRING (L"false")
-#define BUILT_IN_METHOD_PACKAGE_NAME (L"$built_in")
+#define BUILT_IN_METHOD_PACKAGE_NAME ("$built_in")
+
+#define NO_LINE_NUMBER_PC (-1)
+#define FUNCTION_NOT_FOUND (-1)
+#define ENUM_NOT_FOUND (-1)
+#define CONSTANT_NOT_FOUND (-1)
+#define FIELD_NOT_FOUND (-1)
+#define CALL_FORM_NATIVE (-1)
+
+#define GET_2BYTE_INT(p) (((p)[0] << 8) + (p)[1])   
+#define SET_2BYTE_INT(p, value) (p)[0] = (((value)>>8) & 0xff), ((p)[0] = (value) & 0xff)
+
 
 
 typedef struct DVM_Array_tag DVM_Array;
@@ -208,7 +219,7 @@ struct ExecutableEntry_tag{
 typedef struct {
 	char	*package_name;
 	char	*name;
-	DVM_Boolean	*is_defined;
+	DVM_Boolean	is_defined;
 	DVM_Enum	*dvm_enum;
 
 }Enum;

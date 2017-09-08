@@ -42,4 +42,8 @@ typedef struct {
 #define DVM_NANGO_DEFAULT_PACKAGE  (DVM_MANGO_DEFAULE_PACKAGE_P1 "." DVM_NANGO_DEFAULT_PACKAGE_P2)
 
 
+/* nativeif.c */
+size_t dvm_array_size(DVM_VirtualMachine *dvm, DVM_Object *array);
+
+
 #endif /* DVM_dev_h */
