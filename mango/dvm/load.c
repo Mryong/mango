@@ -28,6 +28,32 @@ size_t dvm_search_function(DVM_VirtualMachine *dvm, char *package_name, char *na
 	return FUNCTION_NOT_FOUND;
 }
 
+
+size_t dvm_search_enum(DVM_VirtualMachine *dvm, char *package_name, char *name){
+	for (size_t i = 0; i <dvm->enum_count; i++) {
+		if (dvm_equal_package_name(package_name, dvm->enum_[i]->package_name) && !strcmp(name, dvm->enum_[i]->name)) {
+			return i;
+		}
+	}
+	return ENUM_NOT_FOUND;
+}
+
+size_t dvm_sezrch_constant(DVM_VirtualMachine *dvm, char *package_name, char *name){
+	for (size_t i = 0; i < dvm->constant_count; i++) {
+		if (dvm_equal_package_name(package_name, dvm->constant[i]->package_name) && !strcmp(name, dvm->constant[i]->name)) {
+			return i;
+		}
+
+	}
+	return CONSTANT_NOT_FOUND;
+}
+
+
+
+
+
+
+
 static DVM_VTable *alloc_v_table(ExecClass *exe_class){
 	DVM_VTable *table = MEM_malloc(sizeof(DVM_VTable));
 	table->exec_class = exe_class;
@@ -545,13 +571,41 @@ static void add_reference_table(DVM_VirtualMachine *dvm, ExecutableEntry *entry,
 	
 	entry->class_table = MEM_malloc(sizeof(size_t) * exe->class_count);
 	for (size_t i = 0; exe->class_count; i++) {
-		
+		entry->class_table[i] = dvm_search_class(dvm, exe->class_definition[i].package_name, exe->class_definition[i].name);
 	}
+	
+	entry->enum_table = MEM_malloc(sizeof(size_t) * exe->enum_count);
+	for (size_t i = 0; i < exe->enum_count; i++) {
+		entry->enum_table[i] = dvm_search_enum(dvm, exe->enum_definition[i].package_name, exe->enum_definition[i].name);
+	}
+	
+	entry->constant_table = MEM_malloc(sizeof(size_t) * exe->constant_count);
+	for (size_t i = 0; i < exe->constant_count; i++) {
+		entry->constant_table[i] = dvm_sezrch_constant(dvm, exe->constant_definition[i].package_name, exe->constant_definition[i].name);
+	}
+	
+	
 	
 
 }
 
-static void add_executable_to_dvm(DVM_VirtualMachine *dvm, DVM_Executable *executable, DVM_Boolean is_top_level){
+
+static void add_static_variable(ExecutableEntry *entry, DVM_Executable *exe){
+	entry->static_v.vars_count = exe->global_variable_count;
+	entry->static_v.vars = MEM_malloc(sizeof(DVM_Value) * exe->global_variable_count);
+	for (size_t i = 0; i < exe->global_variable_count; i++) {
+		if (exe->global_variable[i].type->base_type == DVM_STRING_TYPE) {
+			entry->static_v.vars[i].object = dvm_null_object_ref;
+		}
+	}
+	
+	for (size_t i = 0; i < exe->global_variable_count; i++) {
+		dvm_initial_value(exe->global_variable[i].type, &entry->static_v.vars[i]);
+	}
+
+}
+
+static ExecutableEntry *add_executable_to_dvm(DVM_VirtualMachine *dvm, DVM_Executable *executable, DVM_Boolean is_top_level){
 	
 	ExecutableEntry *entry = MEM_malloc(sizeof(ExecutableEntry));
 	if (dvm->executable_entry == NULL) {
@@ -575,9 +629,29 @@ static void add_executable_to_dvm(DVM_VirtualMachine *dvm, DVM_Executable *execu
 		conver_code(func->code_block.code, func->code_block.code_size, func);
 	}
 	
+	add_reference_table(dvm, entry, executable);
+	add_static_variable(entry, executable);
+	
+	if (is_top_level) {
+		dvm->top_level = entry;
+	}
+	
+	return entry;
+	
+	
+	
 	
 	
 
+
+}
+
+static void initialize_contant(DVM_VirtualMachine *dvm, ExecutableEntry *ee){
+	dvm->current_executable = ee;
+	dvm->current_function = NULL;
+	dvm->pc= 0;
+	dvm_expend_stack(dvm, ee->executable->constant_initializer.need_stack_size);
+	dvm_execute_i(dvm, NULL, ee->executable->constant_initializer.code, ee->executable->constant_initializer.code_size, 0);
 
 }
 
@@ -586,7 +660,8 @@ void DVM_set_executable(DVM_VirtualMachine *dvm, DVM_ExecutableList *list){
 	dvm->executable_list = list;
 	
 	for (DVM_ExecutableItem *pos = list->list; pos; pos = pos->next) {
-		add_executable_to_dvm(dvm,pos->executable, pos->executable == list->top_level);
+		ExecutableEntry *ee = add_executable_to_dvm(dvm,pos->executable, pos->executable == list->top_level);
+		initialize_contant(dvm, ee);
 	}
 
 

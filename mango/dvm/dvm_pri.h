@@ -212,7 +212,7 @@ struct ExecutableEntry_tag{
 	size_t			*class_table;
 	size_t			*enum_table;
 	size_t			*constant_table;
-	Static			*static_v;
+	Static			static_v;
 	struct ExecutableEntry_tag	*next;
 };
 
@@ -270,10 +270,13 @@ void dvm_add_native_functions(DVM_VirtualMachine *dvm);
 void dvm_add_native_function(DVM_VirtualMachine *dvm, char *package_name, char *name, DVM_NativeFunctionProc *proc,
 							 size_t argc, DVM_Boolean is_method, DVM_Boolean return_pointer);
 
+/* util.c */
+void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value);
 
 
-
-
+/* execute.c */
+void dvm_expend_stack(DVM_VirtualMachine *dvm, size_t need_stack_size);
+DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base);
 
 
 
