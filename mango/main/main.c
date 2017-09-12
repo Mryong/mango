@@ -43,6 +43,9 @@ int main(int argc,char * argv[]){
 
 	MGC_Compiler *compler = mgc_create_compiler();
 	DVM_ExecutableList *list = mgc_compile(compler, fp, argv[1]);
+	DVM_VirtualMachine *dvm = dvm_create_virtual_machine();
+	DVM_set_executable(dvm, list);
+	mgc_dispose_compiler(compler);
 	
 	
 	

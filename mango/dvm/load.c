@@ -13,6 +13,8 @@
 #include <string.h>
 #include "DVM_dev.h"
 #include "DBG.h"
+#include "MGC.h"
+
 
 extern DVM_ObjectRef dvm_null_object_ref;
 extern OpcodeInfo dvm_opcode_info[];
@@ -369,10 +371,10 @@ static void set_v_table(DVM_VirtualMachine *dvm, DVM_Class *class_p, DVM_Method 
 
 
 
-static size_t add_mehod(DVM_VirtualMachine *dvm, DVM_Executable *exe, DVM_Class *pos, DVM_VTable *v_table){
+static size_t add_method(DVM_VirtualMachine *dvm, DVM_Executable *exe, DVM_Class *pos, DVM_VTable *v_table){
 	size_t super_method_count = 0;
 	if (pos->super_class) {
-		super_method_count = add_mehod(dvm, exe, search_class_from_executable(exe, pos->super_class->name), v_table);
+		super_method_count = add_method(dvm, exe, search_class_from_executable(exe, pos->super_class->name), v_table);
 	}
 	for (size_t i = 0; i < pos->method_count; i++) {
 		size_t j = 0;
@@ -397,6 +399,7 @@ static size_t add_mehod(DVM_VirtualMachine *dvm, DVM_Executable *exe, DVM_Class 
 
 static void add_methods(DVM_VirtualMachine *dvm, DVM_Executable *exe, DVM_Class *src, ExecClass *dest){
 	DVM_VTable *v_table = alloc_v_table(dest);
+	add_method(dvm, exe, src, v_table);
 	dest->class_table = v_table;
 	dest->interface_count = src->interface_count;
 	dest->interface_table = MEM_malloc(sizeof(DVM_VTable *) * src->interface_count);
@@ -638,10 +641,6 @@ static ExecutableEntry *add_executable_to_dvm(DVM_VirtualMachine *dvm, DVM_Execu
 	
 	return entry;
 	
-	
-	
-	
-	
 
 
 }
@@ -666,3 +665,33 @@ void DVM_set_executable(DVM_VirtualMachine *dvm, DVM_ExecutableList *list){
 
 
 }
+
+
+
+void dvm_dynamic_load(DVM_VirtualMachine *dvm, DVM_Executable *caller_exe, Function *caller, size_t pc, Function *func){
+	if (func->package_name == NULL) {
+		//error
+	}
+	
+	char search_file[FILENAME_MAX];
+	MGC_Compiler *compiler = mgc_create_compiler();
+	DVM_ExecutableItem *add_top = NULL;
+	SearchFileStatus status = mgc_dynamic_compile(compiler, func->package_name, dvm->executable_list, &add_top, search_file);
+	if (status != SEARCH_FILE_SUCCESS) {
+		//error
+	}
+	
+	for (DVM_ExecutableItem *pos = add_top; pos; pos = pos->next) {
+		ExecutableEntry  *ee = add_executable_to_dvm(dvm, pos->executable, DVM_FALSE);
+		initialize_contant(dvm, ee);
+	}
+	
+	mgc_dispose_compiler(compiler);
+	
+
+
+}
+
+
+
+

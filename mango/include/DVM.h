@@ -40,7 +40,8 @@ typedef enum {
 	DVM_TRUE = 1
 }DVM_Boolean;
 
-DVM_VirtualMachine *DVM_create_virtual_machine(void);
+DVM_VirtualMachine *dvm_create_virtual_machine(void);
+void DVM_set_executable(DVM_VirtualMachine *dvm, DVM_ExecutableList *list);
 
 
 

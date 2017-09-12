@@ -11,6 +11,8 @@
 
 #include "DVM.h"
 #include <wctype.h>
+#include "MGC.h"
+#include "DVM_code.h"
 
 
 typedef enum {
@@ -86,4 +88,8 @@ DVM_Boolean dvm_equal_string(char *str1, char *str2);
 DVM_Boolean dvm_equal_package_name(char *p1, char *p2);
 void dvm_strncopy(char *dest, char *src, size_t buf_size);
 char *dvm_create_method_function_name(char *class_name, char *method_name);
+
+SearchFileStatus mgc_dynamic_compile(MGC_Compiler *compiler, char *package_name,
+									 DVM_ExecutableList *list, DVM_ExecutableItem **add_top,
+									 char *search_file);
 #endif /* share_h */
