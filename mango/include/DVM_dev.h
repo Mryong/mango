@@ -17,7 +17,7 @@ typedef DVM_Value DVM_NativePointerFinalizeProc(DVM_VirtualMachine *vm, DVM_Obje
 typedef struct {
 	char *name;
 	DVM_NativePointerFinalizeProc *finalizer;
-}DVM_NATIVEPointerInfo;
+}DVM_NativePointerInfo;
 
 typedef enum {
 	DVM_INT_MESSAGE_ARGUMENT = 1,

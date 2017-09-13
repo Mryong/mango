@@ -662,8 +662,6 @@ void DVM_set_executable(DVM_VirtualMachine *dvm, DVM_ExecutableList *list){
 		ExecutableEntry *ee = add_executable_to_dvm(dvm,pos->executable, pos->executable == list->top_level);
 		initialize_contant(dvm, ee);
 	}
-
-
 }
 
 

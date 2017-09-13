@@ -142,11 +142,11 @@ typedef struct {
 
 typedef struct{
 	void	*pointer;
-	DVM_NativeLibInfo	*info;
+	DVM_NativePointerInfo	*info;
 } NativePointer;
 
 typedef struct {
-	DVM_ObjectRef	*obj;
+	DVM_ObjectRef	obj;
 	size_t			index;
 }Delegate;
 
@@ -157,6 +157,7 @@ struct DVM_Object_tag{
 		DVM_String string;
 		DVM_Array array;
 		DVM_ClassObject	class_object;
+		NativePointer	native_pointer;
 		Delegate		delegate;
 	}u;
 	struct DVM_Object_tag	*preview;
@@ -262,6 +263,11 @@ typedef struct RefNativeFunc_tag{
 	struct	RefNativeFunc_tag *next;
 }RefNativeFunc;
 
+struct DVM_Context_tag{
+	RefNativeFunc *ref_in_native_method;
+	struct DVM_Context_tag *next;
+};
+
 
 /* native.c */
 void dvm_add_native_functions(DVM_VirtualMachine *dvm);
@@ -277,8 +283,12 @@ void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value);
 /* execute.c */
 void dvm_expend_stack(DVM_VirtualMachine *dvm, size_t need_stack_size);
 DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base);
+DVM_Value *dvm_execute(DVM_VirtualMachine *dvm);
+void dvm_push_object(DVM_VirtualMachine *dvm, DVM_Value value);
+DVM_Value dvm_pop_object(DVM_VirtualMachine *dvm);
 
-
+/* heap.c */
+void dvm_garbage_collect(DVM_VirtualMachine *dvm);
 
 
 

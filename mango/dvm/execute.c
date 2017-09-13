@@ -76,6 +76,28 @@ DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code
 				pc += 3;
 				dvm->stack.stack_pointer++;
 				break;
+			case DVM_PUSH_DOUBLE_0:
+				STD_WRITE(dvm, 0, 0.0);
+				pc++;
+				dvm->stack.stack_pointer++;
+				break;
+			case DVM_PUSH_DOUBLE_1:
+				STD_WRITE(dvm, 0, 1.0);
+				pc++;
+				dvm->stack.stack_pointer++;
+				break;
+			case DVM_PUSH_DOUBLE:
+				STD_WRITE(dvm, 0, exe->constant_pool[GET_2BYTE_INT(&code[pc + 1])].u.c_double);
+				pc+=3;
+				dvm->stack.stack_pointer++;
+				break;
+			case DVM_PUSH_STRING:{
+				DVM_Char *str = exe->constant_pool[GET_2BYTE_INT(&code[pc + 1])].u.c_string;
+				pc+=3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+				
 				
 			default:
     break;
@@ -93,3 +115,39 @@ DVM_Value *dvm_execute(DVM_VirtualMachine *dvm){
 	return  dvm_execute_i(dvm, NULL, dvm->top_level->executable->top_level.code,  dvm->top_level->executable->top_level.code_size, 0);
 
 }
+
+
+void dvm_push_object(DVM_VirtualMachine *dvm, DVM_Value value){
+	STO_WRITE(dvm, 0, value.object);
+	dvm->stack.stack_pointer++;
+}
+
+DVM_Value dvm_pop_object(DVM_VirtualMachine *dvm){
+	DVM_ObjectRef ref = STO(dvm, 0);
+	DVM_Value val;
+	val.object = ref;
+	dvm->stack.stack_pointer--;
+	return val;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
