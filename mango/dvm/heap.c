@@ -10,6 +10,7 @@
 #include "dvm_pri.h"
 #include "MEM.h"
 #include "share.h"
+#include "DBG.h"
 
 extern DVM_ObjectRef dvm_null_object_ref;
 
@@ -175,7 +176,6 @@ DVM_ObjectRef dvm_create_delegate(DVM_VirtualMachine *dvm,DVM_ObjectRef obj ,siz
 	ref.data->u.delegate.index = index;
 	ref.v_table = NULL;
 	return ref;
-
 }
 
 
@@ -189,13 +189,184 @@ static DVM_Boolean is_reference_type(DVM_TypeSpecifier *type){
 
 }
 
+static void gc_rest_mark(DVM_Object *obj){
+	obj->marked = DVM_FALSE;
+}
+
+static void gc_mark(DVM_ObjectRef *ref){
+	if (ref->data == NULL) {
+		return;
+	}
+	
+	if (ref->data->marked) {
+		return;
+	}
+	ref->data->marked = DVM_TRUE;
+	
+	if (ref->data->type == ARRAY_OBJECT) {
+		if (ref->data->u.array.type == OBJECT_ARRAY) {
+			for (size_t i = 0; i < ref->data->u.array.size; i++) {
+				gc_mark(&ref->data->u.array.u.object_array[i]);
+			}
+		}
+	}else if (ref->data->type == CLASS_OBJECT){
+		ExecClass *ec = ref->v_table->exec_class;
+		for (size_t i = 0; i < ec->field_count; i++) {
+			if (is_reference_type(ec->field_type[i])) {
+				gc_mark(&ref->data->u.class_object.field[i].object);
+			}
+		}
+	
+	}else if (ref->data->type == DELEGATE_OBJECT){
+		gc_mark(&ref->data->u.delegate.obj);
+	}
+
+}
+
+static void gc_mark_ref_in_native_method(DVM_Context *ctx){
+	if (ctx == NULL) {
+		return;
+	}
+	for (RefNativeFunc * ref = ctx->ref_in_native_method; ref; ref = ref->next) {
+		gc_mark(&ref->object);
+	}
+}
 
 
 
+static void gc_mark_objects(DVM_VirtualMachine *dvm){
+	for (DVM_Object *pos = dvm->heap.header; pos; pos = pos->next) {
+		gc_rest_mark(pos);
+	}
+	
+	
+	for (ExecutableEntry *e_pos = dvm->executable_entry; e_pos; e_pos = e_pos->next) {
+		for (size_t i = 0 ; i < e_pos->static_v.vars_count; i++) {
+			if (is_reference_type(e_pos->executable->global_variable[i].type)) {
+				gc_mark(&e_pos->static_v.vars[i].object);
+			}
+		}
+	}
+	
+	
+	for (size_t i = 0; i < dvm->stack.stack_pointer; i++) {
+		if (dvm->stack.pointer_flags[i]) {
+			gc_mark(&dvm->stack.stack[i].object);
+		}
+	}
+	
+	gc_mark(&dvm->current_exception);
+	
+	for (DVM_Context *pos = dvm->current_context; pos; pos = pos->next) {
+		gc_mark_ref_in_native_method(pos);
+	}
+	
+	
+	for (DVM_Context *pos = dvm->free_context; pos; pos = pos->next) {
+		gc_mark_ref_in_native_method(pos);
+	}
+	
 
+}
+
+
+
+static DVM_Boolean gc_dispose_object(DVM_VirtualMachine *dvm, DVM_Object *obj){
+	DVM_Boolean call_finalizer = DVM_FALSE;
+	switch (obj->type) {
+		case ARRAY_OBJECT:{
+			switch (obj->u.array.type) {
+				case INT_ARRAY:
+					dvm->heap.current_heap_size -= sizeof(int) * obj->u.array.size;
+					MEM_free(obj->u.array.u.int_array);
+					break;
+				case DOUBLE_ARRAY:
+					dvm->heap.current_heap_size -= sizeof(double) * obj->u.array.size;
+					MEM_free(obj->u.array.u.double_array);
+					break;
+				case OBJECT_ARRAY:
+					dvm->heap.current_heap_size -= sizeof(DVM_ObjectRef) * obj->u.array.size;
+					MEM_free(obj->u.array.u.object_array);
+					break;
+				case FUNCTION_INDEX_ARRAY:
+					dvm->heap.current_heap_size -= sizeof(size_t) * obj->u.array.size;
+					MEM_free(obj->u.array.u.function_index_array);
+					break;
+				default:
+					break;
+			}
+			break;
+		}
+		case CLASS_OBJECT:{
+			dvm->heap.current_heap_size -= sizeof(DVM_Value) * obj->u.class_object.field_count;
+			MEM_free(obj->u.class_object.field);
+			break;
+		}
+		case STRING_OBJECT:{
+			if (!obj->u.string.is_literal) {
+				dvm->heap.current_heap_size -= sizeof(DVM_Char) * (obj->u.string.length + 1);
+				MEM_free(obj->u.string.string);
+			}
+			break;
+		}
+		case DELEGATE_OBJECT:{
+			break;
+		}
+		case NATIVE_POINTER_OBJECT:{
+			if (obj->u.native_pointer.info->finalizer) {
+				obj->u.native_pointer.info->finalizer(dvm,obj);
+				call_finalizer = DVM_TRUE;
+			}
+			break;
+		}
+			
+			
+	  default:
+			DGB_assert_func(0,"obj->type..%d",obj->type);
+			break;
+	}
+	
+	dvm->heap.current_heap_size += sizeof(DVM_Object);
+	MEM_free(obj);
+	return call_finalizer;
+	
+}
+
+
+static DVM_Boolean gc_sweep_object(DVM_VirtualMachine *dvm){
+	DVM_Boolean call_finalizer = DVM_FALSE;
+	for (DVM_Object *pos = dvm->heap.header; pos;) {
+		if (!pos->marked) {
+			if (pos->preview) {
+				pos->preview->next = pos->next;
+			}else{
+				dvm->heap.header = pos->next;
+			}
+			
+			if (pos->next) {
+				pos->next->preview = pos->preview;
+			}
+			DVM_Object *next = pos->next;
+			if (gc_dispose_object(dvm, pos)) {
+				call_finalizer = DVM_TRUE;
+			}
+			pos = next;
+		}else{
+			pos = pos->next;
+		}
+	}
+	
+	return call_finalizer;
+
+}
 
 
 
 void dvm_garbage_collect(DVM_VirtualMachine *dvm){
+	DVM_Boolean call_finalizer = DVM_FALSE;
+	do {
+		gc_mark_objects(dvm);
+		call_finalizer = gc_sweep_object(dvm);
+	} while (call_finalizer);
 
 }

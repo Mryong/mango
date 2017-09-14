@@ -45,6 +45,8 @@
 ((dvm)->stack.stack[sp].object = (val),\
 (dvm)->stack.pointer_flags[sp] = DVM_TRUE)
 
+extern DVM_ObjectRef dvm_null_object_ref;
+
 void dvm_expend_stack(DVM_VirtualMachine *dvm, size_t need_stack_size){
 	size_t rest = dvm->stack.alloc_size - dvm->stack.stack_pointer;
 	if (rest <= need_stack_size) {
@@ -93,10 +95,114 @@ DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code
 				break;
 			case DVM_PUSH_STRING:{
 				DVM_Char *str = exe->constant_pool[GET_2BYTE_INT(&code[pc + 1])].u.c_string;
+				DVM_ObjectRef ref = dvm_create_dvm_string_i(dvm, str);
+				STO_WRITE(dvm, 0, ref);
 				pc+=3;
 				dvm->stack.stack_pointer++;
 				break;
 			}
+			case DVM_PUSH_NULL:
+				STO_WRITE(dvm, 0, dvm_null_object_ref);
+				pc++;
+				dvm->stack.stack_pointer++;
+				break;
+			case DVM_PUSH_STACK_INT:{
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				int value = STI_I(dvm, base + index);
+				STI_WRITE(dvm, 0, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_STACK_DOUBLE:{
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				double value = STD_I(dvm, base + index);
+				STD_WRITE(dvm, 0, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_STACK_OBJECT:{
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				DVM_ObjectRef ref = STO_I(dvm, base + index);
+				STO_WRITE(dvm, 0, ref);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_STACK_INT:{
+				int value = STI(dvm, -1);
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				STI_WRITE_I(dvm, base + index, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_STACK_DOUBLE:{
+				double value = STD(dvm, -1);
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				STD_WRITE_I(dvm, base + index, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_STACK_OBJECT:{
+				DVM_ObjectRef ref= STO(dvm, -1);
+				int index= GET_2BYTE_INT(&code[pc +1]);
+				STO_WRITE_I(dvm, base + index, ref);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_STATIC_INT:{
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				int value = ee->static_v.vars[index].int_value;
+				STI_WRITE(dvm, 0, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_STATIC_DOUBLE:{
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				double value = ee->static_v.vars[index].double_value;
+				STD_WRITE(dvm, 0, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_STATIC_OBJECT:{
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				DVM_ObjectRef ref = ee->static_v.vars[index].object;
+				STO_WRITE(dvm, 0, ref);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_STATIC_INT:{
+				int value = STI(dvm, -1);
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				ee->static_v.vars[index].int_value = value;
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_STATIC_DOUBLE:{
+				double value = STD(dvm, -1);
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				ee->static_v.vars[index].double_value = value;
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_STATIC_OBJECT:{
+				DVM_ObjectRef ref = STO(dvm, -1);
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				ee->static_v.vars[index].object = ref;
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+				
 				
 				
 			default:

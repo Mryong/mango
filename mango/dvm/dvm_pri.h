@@ -130,7 +130,7 @@ struct DVM_Array_tag{
 		int		*int_array;
 		double	*double_array;
 		DVM_ObjectRef *object_array;
-		size_t	function_index_array;
+		size_t	*function_index_array;
 	}u;
 };
 
@@ -289,6 +289,21 @@ DVM_Value dvm_pop_object(DVM_VirtualMachine *dvm);
 
 /* heap.c */
 void dvm_garbage_collect(DVM_VirtualMachine *dvm);
+void dvm_add_ref_in_native_method(DVM_Context *ctx, DVM_Value value);
+void dvm_check_gc(DVM_VirtualMachine *dvm);
+DVM_ObjectRef dvm_create_dvm_string_i(DVM_VirtualMachine *dvm, DVM_Char *str);
+DVM_ObjectRef dvm_create_array_int_i(DVM_VirtualMachine *dvm, size_t size);
+DVM_ObjectRef dvm_create_array_int(DVM_VirtualMachine *dvm, DVM_Context *ctx, size_t size);
+DVM_ObjectRef dvm_create_array_double_i(DVM_VirtualMachine *dvm, size_t size);
+DVM_ObjectRef dvm_create_array_double(DVM_VirtualMachine *dvm, DVM_Context *ctx, size_t size);
+DVM_ObjectRef dvm_create_array_object_i(DVM_VirtualMachine *dvm, size_t size);
+DVM_ObjectRef dvm_create_array_object(DVM_VirtualMachine *dvm, DVM_Context *ctx, size_t size);
+DVM_ObjectRef dvm_create_class_object_i(DVM_VirtualMachine *dvm, size_t index);
+DVM_ObjectRef dvm_crate_class_object(DVM_VirtualMachine *dvm, DVM_Context *ctx, size_t index);
+DVM_ObjectRef dvm_create_native_pointer_i(DVM_VirtualMachine *dvm, void *poiner, DVM_NativePointerInfo *info);
+DVM_ObjectRef dvm_create_native_pointer(DVM_VirtualMachine *dvm, DVM_Context *ctx, void *poiner, DVM_NativePointerInfo *info);
+DVM_ObjectRef dvm_create_delegate(DVM_VirtualMachine *dvm,DVM_ObjectRef obj ,size_t index);
+void dvm_check_gc(DVM_VirtualMachine *dvm);
 
 
 
