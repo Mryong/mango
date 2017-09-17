@@ -275,6 +275,7 @@ void dvm_add_native_functions(DVM_VirtualMachine *dvm);
 /* load.c */
 void dvm_add_native_function(DVM_VirtualMachine *dvm, char *package_name, char *name, DVM_NativeFunctionProc *proc,
 							 size_t argc, DVM_Boolean is_method, DVM_Boolean return_pointer);
+size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name);
 
 /* util.c */
 void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value);

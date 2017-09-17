@@ -10,6 +10,12 @@
 #define DVM_dev_h
 #include "DVM.h"
 
+typedef enum {
+	DVM_SUCCESS = 1,
+	DVM_ERROR
+
+}DVM_ErrorStatus;
+
 typedef struct DVM_Context_tag DVM_Context;
 
 typedef DVM_Value DVM_NativeFunctionProc(DVM_VirtualMachine *vm, DVM_Context *ctx, size_t argc, DVM_Value *argv);

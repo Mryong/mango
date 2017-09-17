@@ -57,6 +57,24 @@ void dvm_expend_stack(DVM_VirtualMachine *dvm, size_t need_stack_size){
 	}
 }
 
+static void restore_pc(DVM_VirtualMachine *dvm, ExecutableEntry *ee, Function *func, size_t pc){
+	dvm->current_executable = ee;
+	dvm->current_function  = func;
+	dvm->pc = pc;
+}
+
+DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, RumtimeError id, ...){
+	va_list ap;
+	va_start(ap, id);
+	size_t class_index = dvm_search_class(dvm, DVM_NANGO_DEFAULT_PACKAGE, class_name);
+	DVM_ObjectRef obj = dvm_create_class_object_i(dvm, class_index);
+	STO_WRITE(dvm, 0, obj);
+	dvm->stack.stack_pointer++;
+	
+	va_end(ap);
+
+}
+
 DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base){
 	ExecutableEntry *ee = dvm->current_executable;
 	DVM_Executable *exe = ee->executable;
@@ -202,6 +220,68 @@ DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code
 				dvm->stack.stack_pointer++;
 				break;
 			}
+			case DVM_PUSH_CONSTANT_INT:{
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				size_t index_g = ee->constant_table[index];
+				int value = dvm->constant[index_g]->value.int_value;
+				STI_WRITE(dvm, 0, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_CONSTANT_DOUBLE:{
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				size_t index_g = ee->constant_table[index];
+				double value = dvm->constant[index_g]->value.double_value;
+				STD_WRITE(dvm, 0, value);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_CONSTANT_OBJECT:{
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				size_t index_g = ee->constant_table[index];
+				DVM_ObjectRef ref = dvm->constant[index_g]->value.object;
+				STO_WRITE(dvm, 0, ref);
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_CONSTANT_INT:{
+				int value = STI(dvm, -1);
+				int index= GET_2BYTE_INT(&code[pc + 1]);
+				size_t index_g = ee->constant_table[index];
+				dvm->constant[index_g]->value.int_value = value;
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_CONSTANT_DOUBLE:{
+				double value = STD(dvm, -1);
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				size_t index_g = ee->constant_table[index];
+				dvm->constant[index_g]->value.double_value = value;
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_POP_CONSTANT_OBJECT:{
+				DVM_ObjectRef ref = STO(dvm, -1);
+				int index = GET_2BYTE_INT(&code[pc + 1]);
+				size_t index_g = ee->constant_table[index];
+				dvm->constant[index_g]->value.object = ref;
+				pc += 3;
+				dvm->stack.stack_pointer++;
+				break;
+			}
+			case DVM_PUSH_ARRAY_INT:{
+				DVM_ObjectRef arr = STO(dvm, -2);
+				int index = STI(dvm, -1);
+				restore_pc(dvm, ee, func, pc);
+				
+				
+				
+			}
 				
 				
 				
@@ -212,6 +292,9 @@ DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code
 	
 	return NULL;
 }
+
+
+
 
 
 DVM_Value *dvm_execute(DVM_VirtualMachine *dvm){

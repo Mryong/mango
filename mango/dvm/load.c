@@ -425,7 +425,7 @@ static void add_class(DVM_VirtualMachine *dvm, DVM_Executable *exe, DVM_Class *s
 }
 
 
-static size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name){
+size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name){
 	for (size_t i = 0; dvm->class_count; i++) {
 		ExecClass *exe_class = dvm->class_[i];
 		if (dvm_equal_package_name(exe_class->package_name, package_name)
