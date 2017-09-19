@@ -9,10 +9,25 @@
 #include <stdio.h>
 #include "dvm_pri.h"
 #include "DBG.h"
+#include "MEM.h"
+#include "share.h"
 
 
 
 extern DVM_ObjectRef dvm_null_object_ref;
+
+
+void dvm_vstr_clear(VString *v){
+	v->string = NULL;
+}
+
+static size_t my_strlen(DVM_Char *str){
+	if (str == NULL) {
+		return 0;
+	}
+	
+	return dvm_wcslen(str);
+}
 
 void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value){
 	if (type->derive_count > 0) {
@@ -41,4 +56,23 @@ void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value){
 				DBG_assert(0, "type->base_type..%d",type->base_type);
 		}
 	}
+}
+
+void dvm_vstr_append_char(VString *v, DVM_Char c){
+	size_t current_len = my_strlen(v->string);
+	v->string = MEM_realloc(v->string, sizeof(DVM_Char) * (current_len + 2));
+	v->string[current_len] = c;
+	v->string[current_len + 1] = L'\0';
+
+}
+
+void dvm_vstr_append_str(VString *v, DVM_Char *str){
+	size_t szie1 = my_strlen(v->string);
+	size_t size2 = my_strlen(str);
+	
+	v->string = MEM_realloc(v->string, sizeof(DVM_Char) * (szie1 + size2 + 1));
+	dvm_wcscpy(&v->string[szie1], str);
+	
+	
+
 }

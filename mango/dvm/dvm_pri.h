@@ -12,6 +12,7 @@
 #include "DVM.h"
 #include "DVM_code.h"
 #include "DVM_dev.h"
+#include "share.h"
 
 #define STACK_ALLOC_SIZE (4069)
 #define HEAP_THRESHOLD_SIZE (1024*256)
@@ -28,6 +29,9 @@
 #define FIELD_NOT_FOUND (-1)
 #define CALL_FORM_NATIVE (-1)
 
+#define LINE_BUF_SZIE (1024)
+#define MESSAGE_ARGUMENT_MAX (256)
+
 #define GET_2BYTE_INT(p) (((p)[0] << 8) + (p)[1])   
 #define SET_2BYTE_INT(p, value) (p)[0] = (((value)>>8) & 0xff), ((p)[0] = (value) & 0xff)
 
@@ -38,7 +42,7 @@ typedef struct DVM_Array_tag DVM_Array;
 typedef enum {
 	BAD_MULTBYTE_CHARACTER_ERR = 1
 
-}RumtimeError;
+}RuntimeError;
 
 typedef struct {
 	DVM_Char *string;
@@ -278,7 +282,10 @@ void dvm_add_native_function(DVM_VirtualMachine *dvm, char *package_name, char *
 size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name);
 
 /* util.c */
+void dvm_vstr_clear(VString *v);
 void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value);
+void dvm_vstr_append_char(VString *v, DVM_Char c);
+void dvm_vstr_append_str(VString *v, DVM_Char *str);
 
 
 /* execute.c */
@@ -307,7 +314,20 @@ DVM_ObjectRef dvm_create_delegate(DVM_VirtualMachine *dvm,DVM_ObjectRef obj ,siz
 void dvm_check_gc(DVM_VirtualMachine *dvm);
 
 
+/* error.c */
+int dvm_conv_pc_to_line_number(DVM_Executable *exe, Function *fun, size_t pc);
+void dvm_error_i(DVM_Executable *exe, Function *func, int pc, RuntimeError id, ...);
+void dvm_error_n(DVM_VirtualMachine *dvm, RuntimeError id,...);
+void dvm_format_message(DVM_ErrorDefine *error_define, RuntimeError id, VString *message, va_list ap);
 
+/*wchar.c*/
+char *dvm_wcs2mbs(wchar_t *src);
+wchar_t *dvm_mbs2wcs(char *src);
+
+
+extern DVM_ErrorDefine dvm_error_message_format[];
+extern DVM_ObjectRef dvm_null_object_ref;
+extern OpcodeInfo dvm_opcode_info[];
 
 
 

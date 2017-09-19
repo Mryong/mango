@@ -63,7 +63,7 @@ static void restore_pc(DVM_VirtualMachine *dvm, ExecutableEntry *ee, Function *f
 	dvm->pc = pc;
 }
 
-DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, RumtimeError id, ...){
+DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, RuntimeError id, ...){
 	va_list ap;
 	va_start(ap, id);
 	size_t class_index = dvm_search_class(dvm, DVM_NANGO_DEFAULT_PACKAGE, class_name);
@@ -72,6 +72,7 @@ DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, Ru
 	dvm->stack.stack_pointer++;
 	
 	va_end(ap);
+	return obj;
 
 }
 

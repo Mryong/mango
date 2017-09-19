@@ -1,5 +1,5 @@
 TARGET = dvm.o
-OBJS = load.o native.o nativeif.o util.o execute.o heap.o
+OBJS = load.o native.o nativeif.o util.o execute.o heap.o wchar.o
 CC = gcc
 CFLAGS = -c -Wall -DEBUG -I../include
 
@@ -19,3 +19,4 @@ nativeif.o: native.c dvm_pri.h ../include/DVM.h
 util.o: util.c  dvm_pri.h ../include/DVM.h
 execute.o: execute.c   dvm_pri.h ../include/DVM.h
 heap.o: heap.c dvm_pri.h ../include/DVM.h
+wchar.o: wchar.c
