@@ -40,7 +40,22 @@
 typedef struct DVM_Array_tag DVM_Array;
 
 typedef enum {
-	BAD_MULTBYTE_CHARACTER_ERR = 1
+	BAD_MULTBYTE_CHARACTER_ERR = 1,
+	FUNCTION_NOT_FOUND_ERR,
+	FUNCTION_MULTIPLE_DEFINE_ERR,
+	INDEX_OUT_OF_BOUNDS_ERR,
+	DIVISION_BY_ZERO_ERR,
+	NULL_POINTER_ERR,
+	LOAD_FILE_NOT_FOUND_ERR,
+	LOAD_FILE_ERR,
+	CLASS_MULTIPLE_DEFINE_ERR,
+	CLASS_NOT_FOUND_ERR,
+	CLASS_CASE_ERR,
+	ENUM_MULTIPLE_DEFINE_ERR,
+	CONSTANT_MULTIPLE_DEFINE_ERR,
+	DYNAMIC_LOAD_WITHOUT_PACKAGE_ERR,
+	RUNTIME_ERROR_COUONT_PULS_1
+	
 
 }RuntimeError;
 
@@ -276,6 +291,9 @@ struct DVM_Context_tag{
 /* native.c */
 void dvm_add_native_functions(DVM_VirtualMachine *dvm);
 
+/* nativeif.c */
+size_t dvm_get_field_index(DVM_VirtualMachine *dvm, DVM_ObjectRef obj, char *field_name);
+
 /* load.c */
 void dvm_add_native_function(DVM_VirtualMachine *dvm, char *package_name, char *name, DVM_NativeFunctionProc *proc,
 							 size_t argc, DVM_Boolean is_method, DVM_Boolean return_pointer);
@@ -290,6 +308,7 @@ void dvm_vstr_append_str(VString *v, DVM_Char *str);
 
 /* execute.c */
 void dvm_expend_stack(DVM_VirtualMachine *dvm, size_t need_stack_size);
+DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, RuntimeError id, ...);
 DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base);
 DVM_Value *dvm_execute(DVM_VirtualMachine *dvm);
 void dvm_push_object(DVM_VirtualMachine *dvm, DVM_Value value);

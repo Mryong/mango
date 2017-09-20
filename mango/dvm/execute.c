@@ -70,8 +70,10 @@ DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, Ru
 	DVM_ObjectRef obj = dvm_create_class_object_i(dvm, class_index);
 	STO_WRITE(dvm, 0, obj);
 	dvm->stack.stack_pointer++;
-	
+	VString message;
+	dvm_format_message(dvm_error_message_format, id, &message, ap);
 	va_end(ap);
+	
 	return obj;
 
 }

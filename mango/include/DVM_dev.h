@@ -46,6 +46,7 @@ typedef struct {
 #define DVM_MANGO_DEFAULE_PACKAGE_P1 "mango"
 #define DVM_NANGO_DEFAULT_PACKAGE_P2 "lang"
 #define DVM_NANGO_DEFAULT_PACKAGE  (DVM_MANGO_DEFAULE_PACKAGE_P1 "." DVM_NANGO_DEFAULT_PACKAGE_P2)
+#define DVM_NULL_POINTER_EXCEPTION_NAME ("NullPointerException")
 
 
 /* nativeif.c */
