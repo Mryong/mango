@@ -19,7 +19,7 @@ size_t dvm_array_size(DVM_VirtualMachine *dvm, DVM_Object *array){
 
 static DVM_ErrorStatus check_array(DVM_VirtualMachine *dvm, DVM_ObjectRef array, int index, DVM_Executable *exe, Function *func, size_t pc, DVM_ObjectRef *exception_p){
 	if (array.data == NULL) {
-		*exception_p = dvm_create_exception(dvm, DVM_NULL_POINTER_EXCEPTION_NAME, NULL_POINTER_ERR, DVM_MESSAGE_ARGUMENT_END);
+		*exception_p = dvm_create_exception(dvm, DVM_NULL_POINTER_EXCEPTION_CLASS, NULL_POINTER_ERR, DVM_MESSAGE_ARGUMENT_END);
 		return DVM_ERROR;
 	}
 	if (index < 0 || index >= array.data->u.array.size) {
@@ -170,6 +170,99 @@ void dvm_array_resize(DVM_VirtualMachine *dvm, DVM_Object *array, size_t new_siz
 			break;
 	}
 	array->u.array.size = new_size;
+}
+
+
+static void extracted(DVM_Object *array, DVM_VirtualMachine *dvm) {
+	resize_array_alloc_size(dvm, array, array->u.array.size + 1);
+}
+
+void dvm_array_insert(DVM_VirtualMachine *dvm, DVM_Object *array, size_t pos, DVM_Value value){
+	extracted(array, dvm);
+	switch (array->u.array.type) {
+		case INT_ARRAY:
+			memmove(&array->u.array.u.int_array[pos + 1], &array->u.array.u.int_array[pos], sizeof(int) * (array->u.array.size - pos));
+			array->u.array.u.int_array[pos] = value.int_value;
+			break;
+		case DOUBLE_ARRAY:
+			memmove(&array->u.array.u.double_array[pos + 1], &array->u.array.u.double_array[pos], sizeof(double) * (array->u.array.size - pos));
+			array->u.array.u.double_array[pos] = value.double_value;
+			break;
+		case OBJECT_ARRAY:
+			memmove(&array->u.array.u.object_array[pos + 1], &array->u.array.u.object_array[pos], sizeof(DVM_ObjectRef) * (array->u.array.size - pos));
+			array->u.array.u.object_array[pos] = value.object;
+			break;
+		case FUNCTION_INDEX_ARRAY:
+		default:
+			DBG_assert(0,"array->u.array->type.. %d",array->u.array.type);
+			break;
+	}
+	array->u.array.size++;
+}
+
+void dvm_array_remove(DVM_VirtualMachine *dvm, DVM_Object *array, size_t pos){
+	switch (array->u.array.type) {
+		case INT_ARRAY:
+			memmove(&array->u.array.u.int_array[pos], &array->u.array.u.int_array[pos + 1], sizeof(int) * (array->u.array.size - pos - 1));
+			break;
+		case DOUBLE_ARRAY:
+			memmove(&array->u.array.u.double_array[pos], &array->u.array.u.double_array[pos + 1], sizeof(double) * (array->u.array.size - pos - 1));
+			break;
+		case OBJECT_ARRAY:
+			memmove(&array->u.array.u.object_array[pos], &array->u.array.u.object_array[pos + 1], sizeof(DVM_ObjectRef) * (array->u.array.size - pos - 1));
+			break;
+		case FUNCTION_INDEX_ARRAY:
+		default:
+			DBG_assert(0,"array->u.array->type.. %d",array->u.array.type);
+			break;
+	}
+	resize_array_alloc_size(dvm, array, array->u.array.size - 1);
+	array->u.array.size--;
+	
+}
+
+
+size_t dvm_string_length(DVM_VirtualMachine *dvm, DVM_Object *string){
+	return string->u.string.length;
+}
+
+DVM_Char * dvm_string_get_string(DVM_VirtualMachine *dvm, DVM_Object *string){
+	return string->u.string.string;
+}
+
+static DVM_ErrorStatus check_string_index(DVM_VirtualMachine *dvm, DVM_ObjectRef string, int index, DVM_Executable *exe, Function *func, size_t pc, DVM_ObjectRef *exception_p){
+	if (string.data == NULL) {
+		*exception_p = dvm_create_exception(dvm, DVM_NULL_POINTER_EXCEPTION_CLASS, NULL_POINTER_ERR, DVM_MESSAGE_ARGUMENT_END);
+		return DVM_ERROR;
+	}
+	if (index < 0 || index >= string.data->u.string.length) {
+		*exception_p = dvm_create_exception(dvm, STRING_INDEX_EXCEPTION_CLASS, INDEX_OUT_OF_BOUNDS_ERR,
+											DVM_INT_MESSAGE_ARGUMENT, "index", index,
+											DVM_INT_MESSAGE_ARGUMENT, "size", string.data->u.string.length,
+											DVM_MESSAGE_ARGUMENT_END);
+		return DVM_ERROR;
+	}
+	return DVM_SUCCESS;
+	
+}
+
+DVM_ErrorStatus dvm_get_character(DVM_VirtualMachine *dvm, DVM_ObjectRef string, int index, DVM_Char *ch, DVM_ObjectRef *exception_p){
+	DVM_ErrorStatus status = check_string_index(dvm, string, index, dvm->current_executable->executable, dvm->current_function, dvm->pc, exception_p);
+	if (status != DVM_SUCCESS) {
+		return status;
+	}
+	
+	*ch = string.data->u.string.string[index];
+	return DVM_SUCCESS;
+}
+
+DVM_Value dvm_string_substr(DVM_VirtualMachine *dvm, DVM_Object *str, int pos, size_t len){
+	 DVM_Char *new_str = MEM_malloc(sizeof(DVM_Char) *(len + 1));
+	dvm_wcsncpy(new_str, str->u.string.string + len, len);
+	new_str[len] = L'\0';
+	DVM_Value ret;
+	ret.object = dvm_create_dvm_string_i(dvm, new_str);
+	return ret;
 }
 
 

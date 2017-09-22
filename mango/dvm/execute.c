@@ -281,6 +281,7 @@ DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code
 				DVM_ObjectRef arr = STO(dvm, -2);
 				int index = STI(dvm, -1);
 				restore_pc(dvm, ee, func, pc);
+				dvm_array_get_int(<#DVM_VirtualMachine *dvm#>, <#DVM_ObjectRef array#>, <#int index#>, <#int *value#>, <#DVM_ObjectRef *exception#>)
 				
 				
 				
