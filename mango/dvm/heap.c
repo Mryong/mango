@@ -48,15 +48,25 @@ void dvm_add_ref_in_native_method(DVM_Context *ctx, DVM_Value value){
 }
 
 
-DVM_ObjectRef dvm_create_dvm_string_i(DVM_VirtualMachine *dvm, DVM_Char *str){
+DVM_ObjectRef dvm_literal_create_dvm_string_i(DVM_VirtualMachine *dvm, DVM_Char *str){
 	DVM_ObjectRef ref = alloc_object(dvm, STRING_OBJECT);
 	ref.v_table = dvm->string_v_table;
 	ref.data->u.string.string  = str;
 	size_t len = dvm_wcslen(str);
 	ref.data->u.string.length = len;
 	ref.data->u.string.is_literal = DVM_TRUE;
+	return ref;
+}
+DVM_ObjectRef dvm_create_dvm_string_i(DVM_VirtualMachine *dvm, DVM_Char *str){
+	DVM_ObjectRef ref = alloc_object(dvm, STRING_OBJECT);
+	ref.v_table = dvm->string_v_table;
+	size_t len = dvm_wcslen(str);
+	ref.data->u.string.string = str;
+	ref.data->u.string.length = len;
+	ref.data->u.string.is_literal = DVM_FALSE;
 	dvm->heap.current_heap_size += sizeof(DVM_Char) * (len + 1);
 	return ref;
+	
 }
 
 static DVM_ObjectRef alloc_array(DVM_VirtualMachine *dvm, ArrayType type, size_t size){

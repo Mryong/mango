@@ -318,6 +318,7 @@ DVM_Value dvm_pop_object(DVM_VirtualMachine *dvm);
 void dvm_garbage_collect(DVM_VirtualMachine *dvm);
 void dvm_add_ref_in_native_method(DVM_Context *ctx, DVM_Value value);
 void dvm_check_gc(DVM_VirtualMachine *dvm);
+DVM_ObjectRef dvm_literal_create_dvm_string_i(DVM_VirtualMachine *dvm, DVM_Char *str);
 DVM_ObjectRef dvm_create_dvm_string_i(DVM_VirtualMachine *dvm, DVM_Char *str);
 DVM_ObjectRef dvm_create_array_int_i(DVM_VirtualMachine *dvm, size_t size);
 DVM_ObjectRef dvm_create_array_int(DVM_VirtualMachine *dvm, DVM_Context *ctx, size_t size);
