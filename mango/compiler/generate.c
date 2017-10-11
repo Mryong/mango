@@ -98,7 +98,7 @@ static void fix_labels(OpcodeBuf *ob){
 		
 		char *param = dvm_opcode_info[code].parameter;
 		
-		for (size_t j = 0; param[j] != '\0'; i++) {
+		for (size_t j = 0; param[j] != '\0'; j++) {
 			switch (param[j]) {
 				case 'b':
 					i++;
@@ -133,7 +133,7 @@ static size_t calc_stack_size(OpcodeBuf *ob){
 		}
 		char *param = dvm_opcode_info[code].parameter;
 		
-		for (size_t j = 0; param[j] != '\0'; i++) {
+		for (size_t j = 0; param[j] != '\0'; j++) {
 			switch (param[j]) {
 				case 'b':
 					i++;

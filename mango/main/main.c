@@ -22,14 +22,6 @@ int test(){
 
 
 int main(int argc,char * argv[]){
-	
-	size_t a = 2;
-	size_t b = 3;
-	size_t c = 5;
-	c += a - b;
-	
-	
-	
 	setlocale(LC_CTYPE, "zh_CN.UTF-8");
 
 	
@@ -41,7 +33,9 @@ int main(int argc,char * argv[]){
 	}
 
 	
-	
+	char *str1 = "";
+	char *str2 = "mango.lang";
+	strcmp(str1, str2);
 	
 	extern FILE *yyin;
     FILE *fp = fopen(argv[1], "r");

@@ -4,7 +4,6 @@ CFLAGS = -c -g -DEBUG -Wall
 INCLUDES = -I/usr/local/include -I../include
 OBJS = main.o\
  ../compiler/conpiler.o\
- ../memory/men.o\
  ../share/share.o\
  ../debug/dbg.o\
  ../compiler/buildin/buildin.o\
@@ -29,8 +28,6 @@ all:
 main.o: main.c ../include/MEM.h
 ../compiler/conpiler.o:
 	cd ../compiler;$(MAKE)
-../memory/men.o:
-	cd ../memory;$(MAKE)
 ../share/share.o:
 	cd ../share;$(MAKE)
 ../debug/dbg.o:

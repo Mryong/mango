@@ -102,10 +102,8 @@ static FunctionDefinition *create_build_in_method(BuildInMethod *src, size_t met
 
 MGC_Compiler *mgc_create_compiler(void){
 	MGC_Compiler *compiler_backup = mgc_get_current_compiler();
-	MEM_Storage storage = MEM_open_storage(0);
-	MGC_Compiler *compiler = MEM_storage_malloc(storage, sizeof(struct MGC_Compiler_tag));
+	MGC_Compiler *compiler = MEM_malloc(sizeof(MGC_Compiler));
 	mgc_set_current_compiler(compiler);
-	compiler->compile_storage = storage;
 	compiler->package_name = NULL;
 	compiler->source_suffix = MGM_SOURCE;
 	compiler->require_list = NULL;
@@ -276,8 +274,7 @@ static DVM_Boolean add_exe_to_list(DVM_Executable *exe, DVM_ExecutableList *list
 
 
 static void set_path_to_compiler(MGC_Compiler *compiler, char *path){
-	compiler->path = MEM_storage_malloc(compiler->compile_storage, strlen(path) +1 );
-	strcpy(compiler->path, path);
+	compiler->path = MEM_strdup(path);
 }
 
 
@@ -369,9 +366,8 @@ DVM_ExecutableList *mgc_compile(MGC_Compiler *compiler, FILE *fp, char *path){
 
 
 PackageName *create_one_package_name(MGC_Compiler *compiler, char *str, size_t start_idx, size_t end_idx){
-	MEM_Storage storage = compiler->compile_storage;
-	PackageName *pn = MEM_storage_malloc(storage, sizeof(*pn));
-	pn->name = MEM_storage_malloc(storage, end_idx - start_idx + 1);
+	PackageName *pn = MEM_malloc(sizeof(PackageName));
+	pn->name = MEM_malloc(end_idx - start_idx + 1);
 	
 	size_t i = 0;
 	for (; i < end_idx - start_idx; i++) {
@@ -506,7 +502,6 @@ void mgc_dispose_compiler(MGC_Compiler *compiler){
 			pos->compiler->required_list = temp->next;
 			MEM_free(temp);
 		}
-		MEM_dispose_storage(pos->compiler->compile_storage);
 		temp = pos->next;
 		MEM_free(pos);
 		pos = temp;

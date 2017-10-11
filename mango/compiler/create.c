@@ -21,6 +21,7 @@ DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl){
 	DeclarationList *add = mgc_malloc(sizeof(*add));
 	add->next = NULL;
 	if (list == NULL) {
+		add->declaration = decl;
 		return add;
 	}
 	
@@ -192,6 +193,7 @@ FunctionDefinition *mgc_create_function_definition(TypeSpecifier *type, char *id
 	
 	FunctionDefinition  *function_definition = mgc_malloc(sizeof(*function_definition));
 	function_definition->type = type;
+	function_definition->package_name = compiler->package_name;
 	function_definition->name = identifier;
 	function_definition->parameter_list = parameter_list;
 	function_definition->throws = exception_list;
@@ -1107,6 +1109,7 @@ int yyerror(char const *str){
 }
 
 void mgc_compile_error(int line_number,CompileError err,...){
+	assert(0);
 	printf("%s\n","mgc_compile_error");
 	exit(1);
 }

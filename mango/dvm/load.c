@@ -107,15 +107,16 @@ static void set_built_in_methods(DVM_VirtualMachine *dvm){
 
 void dvm_add_native_function(DVM_VirtualMachine *dvm, char *package_name, char *name, DVM_NativeFunctionProc *proc,
 							 size_t argc, DVM_Boolean is_method, DVM_Boolean return_pointer){
-	dvm->function = MEM_malloc(sizeof(Function) * (dvm->function_count + 1));
-	dvm->current_function[dvm->function_count].is_implemented = DVM_TRUE;
-	dvm->current_function[dvm->function_count].kind = NATIVE_FUNCTION;
-	dvm->current_function[dvm->function_count].name = MEM_strdup(name);
-	dvm->current_function[dvm->function_count].package_name = MEM_strdup(package_name);
-	dvm->current_function[dvm->function_count].u.native_f.argc = argc;
-	dvm->current_function[dvm->function_count].u.native_f.is_method = is_method;
-	dvm->current_function[dvm->function_count].u.native_f.proc = proc;
-	dvm->current_function[dvm->function_count].u.native_f.return_pointer = return_pointer;
+	dvm->function = MEM_realloc(dvm->function, sizeof(Function*) * (dvm->function_count + 1));
+	dvm->function[dvm->function_count] = MEM_malloc(sizeof(Function));
+	dvm->function[dvm->function_count]->is_implemented = DVM_TRUE;
+	dvm->function[dvm->function_count]->kind = NATIVE_FUNCTION;
+	dvm->function[dvm->function_count]->name = MEM_strdup(name);
+	dvm->function[dvm->function_count]->package_name = MEM_strdup(package_name);
+	dvm->function[dvm->function_count]->u.native_f.argc = argc;
+	dvm->function[dvm->function_count]->u.native_f.is_method = is_method;
+	dvm->function[dvm->function_count]->u.native_f.proc = proc;
+	dvm->function[dvm->function_count]->u.native_f.return_pointer = return_pointer;
 	dvm->function_count++;
 }
 	
@@ -169,7 +170,7 @@ static void add_functions(DVM_VirtualMachine *dvm, ExecutableEntry *entry){
 	size_t function_count = entry->executable->function_count;
 	size_t add_count = 0;
 	DVM_Boolean *new_func_flags = MEM_malloc(sizeof(DVM_Boolean) * function_count);
-	for (size_t i = 0; function_count; i++) {
+	for (size_t i = 0; i < function_count; i++) {
 		new_func_flags[i] = DVM_FALSE;
 		size_t j = 0;
 		for (; j < dvm->function_count; j++) {
@@ -323,6 +324,12 @@ static void add_constant(DVM_VirtualMachine *dvm, ExecutableEntry *entry){
 
 
 static DVM_Class *search_class_from_executable(DVM_Executable *exe, char *name){
+	for (size_t i = 0; i < exe->class_count; i++) {
+		if (!strcmp(name, exe->class_definition[i].name)) {
+			return &exe->class_definition[i];
+		}
+	}
+	DBG_assert(0, "not found class");
 	return NULL;
 }
 
@@ -345,6 +352,9 @@ static void add_fields(DVM_Executable *exe, DVM_Class *src, ExecClass *dest){
 	size_t filed_count = 0;
 	for (DVM_Class *pos = src; pos; pos = search_class_from_executable(exe,pos->super_class->name)) {
 		filed_count += pos->field_count;
+		if (!pos->super_class) {
+			break;
+		}
 	}
 	dest->field_count = filed_count;
 	dest->field_type = MEM_malloc(sizeof(DVM_TypeSpecifier *) * filed_count);
@@ -426,10 +436,10 @@ static void add_class(DVM_VirtualMachine *dvm, DVM_Executable *exe, DVM_Class *s
 
 
 size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name){
-	for (size_t i = 0; dvm->class_count; i++) {
+	for (size_t i = 0; i < dvm->class_count; i++) {
 		ExecClass *exe_class = dvm->class_[i];
 		if (dvm_equal_package_name(exe_class->package_name, package_name)
-			&& strcmp(exe_class->name, name)) {
+			&& !strcmp(exe_class->name, name)) {
 			return i;
 		}
 	}
@@ -573,7 +583,7 @@ static void add_reference_table(DVM_VirtualMachine *dvm, ExecutableEntry *entry,
 	}
 	
 	entry->class_table = MEM_malloc(sizeof(size_t) * exe->class_count);
-	for (size_t i = 0; exe->class_count; i++) {
+	for (size_t i = 0; i < exe->class_count; i++) {
 		entry->class_table[i] = dvm_search_class(dvm, exe->class_definition[i].package_name, exe->class_definition[i].name);
 	}
 	
@@ -611,6 +621,8 @@ static void add_static_variable(ExecutableEntry *entry, DVM_Executable *exe){
 static ExecutableEntry *add_executable_to_dvm(DVM_VirtualMachine *dvm, DVM_Executable *executable, DVM_Boolean is_top_level){
 	
 	ExecutableEntry *entry = MEM_malloc(sizeof(ExecutableEntry));
+	entry->executable =  executable;
+	entry->next = NULL;
 	if (dvm->executable_entry == NULL) {
 		dvm->executable_entry = entry;
 	}else{
@@ -629,7 +641,10 @@ static ExecutableEntry *add_executable_to_dvm(DVM_VirtualMachine *dvm, DVM_Execu
 	
 	for (size_t i = 0; i < executable->function_count; i++) {
 		DVM_Function *func = &executable->function[i];
-		conver_code(func->code_block.code, func->code_block.code_size, func);
+		if (func->is_implemented) {
+			conver_code(func->code_block.code, func->code_block.code_size, func);
+		}
+		
 	}
 	
 	add_reference_table(dvm, entry, executable);

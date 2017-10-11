@@ -27,7 +27,7 @@ void mgc_set_current_compiler(MGC_Compiler *compiler){
 
 void *mgc_malloc(size_t size){
 	MGC_Compiler *compler = mgc_get_current_compiler();
-    return  MEM_storage_malloc(compler->compile_storage, size);
+	return  MEM_malloc(size);
 }
 
 
@@ -215,7 +215,7 @@ FunctionDefinition *mgc_search_function(char *name){
 }
 
 Declaration *mgc_search_declaration(char *identifier, Block *block){
-	for (Block *block_pos = block; block; block_pos = block->out_block) {
+	for (Block *block_pos = block; block_pos; block_pos = block->out_block) {
 		for (DeclarationList *declaration_pos = block_pos->declaration_list; declaration_pos; declaration_pos = declaration_pos->next) {
 			if (!strcmp(declaration_pos->declaration->name, identifier)) {
 				return declaration_pos->declaration;

@@ -847,7 +847,7 @@ typedef struct {
 
 
 struct MGC_Compiler_tag{
-	MEM_Storage			compile_storage;
+//	MEM_Storage			compile_storage;
 	PackageName			*package_name;
 	SourceSuffix		source_suffix;
 	char				*path;

@@ -1,4 +1,5 @@
-public interface A: B, C, D{
+public interface A{
+
 
 }
 

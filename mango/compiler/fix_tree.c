@@ -387,7 +387,7 @@ static Expression *create_up_cast(Expression *src, ClassDefinition *dest_interfa
 
 static DVM_Boolean check_throws(ExceptionList *wide, ExceptionList *narrow, ExceptionList **error_exception){
 	ExceptionList *narrow_pos;
-	DVM_Boolean is_thrown = DVM_FALSE;
+	DVM_Boolean is_thrown = DVM_TRUE;
 	for (narrow_pos = narrow; narrow_pos; narrow_pos = narrow_pos->next) {
 		is_thrown = DVM_FALSE;
 		for (ExceptionList *wide_pos = wide; wide_pos; wide_pos = wide_pos->next) {
@@ -2016,8 +2016,11 @@ static void fix_function(FunctionDefinition *fd){
 static void add_super_interface(ClassDefinition *cd){
 	
 	ExtendsList *tail = NULL;
-	for (tail = cd->interface_list; tail->next; tail = tail->next)
-		;
+	if (cd->interface_list) {
+		for (tail = cd->interface_list; tail->next; tail = tail->next)
+			;
+	}
+	
 	for (ClassDefinition *super = cd->super_class; super; super = super->super_class) {
 		for (ExtendsList *pos = super->interface_list; pos;pos = pos->next) {
 			ExtendsList *temp = mgc_malloc(sizeof(ExtendsList));
@@ -2176,6 +2179,9 @@ static void fix_class_list(MGC_Compiler *compiler){
 	}
 	
 	for (ClassDefinition *pos = compiler->class_definition_list; pos; pos = pos->next) {
+		if (pos->class_or_interface == DVM_INTERFACE_DEFINITION) {
+			continue;
+		}
 		compiler->current_class_definition = pos;
 		add_default_constructor(pos);
 		compiler->current_class_definition = NULL;
