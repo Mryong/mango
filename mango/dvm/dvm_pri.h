@@ -32,8 +32,15 @@
 #define LINE_BUF_SZIE (1024)
 #define MESSAGE_ARGUMENT_MAX (256)
 
+#define is_object_null(obj) ((obj).data == NULL)
+
 #define GET_2BYTE_INT(p) (((p)[0] << 8) + (p)[1])   
 #define SET_2BYTE_INT(p, value) (p)[0] = (((value)>>8) & 0xff), ((p)[0] = (value) & 0xff)
+
+static inline DVM_Boolean is_pointer_type(DVM_TypeSpecifier *type){
+	DVM_BaseType base = type->base_type;
+	return type->derive_count > 0 || base == DVM_STRING_TYPE || base == DVM_CLASS_TYPE || base == DVM_NULL_TYPE || base == DVM_DELEGAET_TYPE;
+}
 
 
 
@@ -50,7 +57,7 @@ typedef enum {
 	LOAD_FILE_ERR,
 	CLASS_MULTIPLE_DEFINE_ERR,
 	CLASS_NOT_FOUND_ERR,
-	CLASS_CASE_ERR,
+	CLASS_CAST_ERR,
 	ENUM_MULTIPLE_DEFINE_ERR,
 	CONSTANT_MULTIPLE_DEFINE_ERR,
 	DYNAMIC_LOAD_WITHOUT_PACKAGE_ERR,
@@ -98,7 +105,7 @@ typedef struct {
 typedef struct {
 	Function *caller;
 	size_t	caller_address;
-	int		base;
+	ssize_t		base;
 }CallInfo;
 
 #define revalue_up_align(val)  ((val) ? (((val) - 1) / sizeof(DVM_Value) + 1) : 0)
@@ -298,7 +305,10 @@ size_t dvm_get_field_index(DVM_VirtualMachine *dvm, DVM_ObjectRef obj, char *fie
 void dvm_add_native_function(DVM_VirtualMachine *dvm, char *package_name, char *name, DVM_NativeFunctionProc *proc,
 							 size_t argc, DVM_Boolean is_method, DVM_Boolean return_pointer);
 size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name);
-
+void dvm_dynamic_load(DVM_VirtualMachine *dvm, DVM_Executable *caller_exe, Function *caller, size_t pc, Function *func);
+size_t dvm_search_function(DVM_VirtualMachine *dvm, char *package_name, char *name);
+size_t dvm_search_enum(DVM_VirtualMachine *dvm, char *package_name, char *name);
+size_t dvm_sezrch_constant(DVM_VirtualMachine *dvm, char *package_name, char *name);
 /* util.c */
 void dvm_vstr_clear(VString *v);
 void dvm_initial_value(DVM_TypeSpecifier *type, DVM_Value *value);
@@ -309,8 +319,8 @@ void dvm_vstr_append_str(VString *v, DVM_Char *str);
 /* execute.c */
 void dvm_expend_stack(DVM_VirtualMachine *dvm, size_t need_stack_size);
 DVM_ObjectRef dvm_create_exception(DVM_VirtualMachine *dvm, char *class_name, RuntimeError id, ...);
-DVM_Value *dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base);
-DVM_Value *dvm_execute(DVM_VirtualMachine *dvm);
+DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base);
+DVM_Value dvm_execute(DVM_VirtualMachine *dvm);
 void dvm_push_object(DVM_VirtualMachine *dvm, DVM_Value value);
 DVM_Value dvm_pop_object(DVM_VirtualMachine *dvm);
 

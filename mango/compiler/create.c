@@ -137,7 +137,7 @@ static RequireList *add_default_package(RequireList *require_list){
 	DVM_Boolean default_package_has_required = DVM_FALSE;
 	while (pos) {
 		char *temp = mgc_package_name_to_string(pos->package_name);
-		if (dvm_equal_string(temp, DVM_NANGO_DEFAULT_PACKAGE)) {
+		if (dvm_equal_string(temp, DVM_MANGO_DEFAULT_PACKAGE)) {
 			default_package_has_required = DVM_TRUE;
 			free(temp);
 			break;
@@ -148,7 +148,7 @@ static RequireList *add_default_package(RequireList *require_list){
 	
 	if (!default_package_has_required) {
 		PackageName *dpn = mgc_create_package_name(DVM_MANGO_DEFAULE_PACKAGE_P1);
-		dpn = mgc_chain_package_name(dpn, DVM_NANGO_DEFAULT_PACKAGE_P2);
+		dpn = mgc_chain_package_name(dpn, DVM_MANGO_DEFAULT_PACKAGE_P2);
 	    RequireList *new_list = mgc_create_require_list(dpn);
 		new_list->next = require_list;
 		return new_list;
@@ -160,7 +160,7 @@ static RequireList *add_default_package(RequireList *require_list){
 void mgc_set_require_and_rename_list(RequireList *require_list, RenameList *rename_list){
 	MGC_Compiler *compiler = mgc_get_current_compiler();
 	char *current_package_name_str = mgc_package_name_to_string(compiler->package_name);
-	if (!dvm_equal_string(current_package_name_str, DVM_NANGO_DEFAULT_PACKAGE)) {
+	if (!dvm_equal_string(current_package_name_str, DVM_MANGO_DEFAULT_PACKAGE)) {
 		require_list = add_default_package(require_list);
 	}
 	MEM_free(current_package_name_str);

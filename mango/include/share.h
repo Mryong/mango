@@ -52,13 +52,14 @@ typedef enum {
 #define ARRAY_SZIE(array) (sizeof(array) / sizeof((array)[0]))
 
 #define STACK_TRACE_CLASS "StackTrace"
-#define PRINT_STACK_TRACE_FUNC "StackTrace#print_stack_trace"
+#define PRINT_STACK_TRACE_FUNC "Exception#print_stack_trace"
+#define EXCEPTION_CLASS "Exception"
 #define BUG_EXCEPTION_CLASS "BugException"
 #define RUNTIME_EXCEPTION_CLASS "RuntimeException"
 #define ARRAY_INDEX_EXCEPTION_CLASS "ArrayIndexOutOfBoundsException"
 #define STRING_INDEX_EXCEPTION_CLASS "StringIndexOutOfBoundsException"
 #define DIVISION_BY_ZERO_EXCEPTION_CLASS "DivisonByZeroException"
-#define CLASS_CAST_EXCEPTION_CLAS "ClassCastException"
+#define CLASS_CAST_EXCEPTION_CLASS "ClassCastException"
 #define MULTIPLE_CONVERSION_EXCEPTION "MultipleCharacterConversionException"
 #define NUMBER_FORMAT_EXCEPTION_EXCEPTION "NumberFormatException"
 
