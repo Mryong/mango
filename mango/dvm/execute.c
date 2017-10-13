@@ -13,6 +13,8 @@
 #include "DBG.h"
 
 
+#define ST_TOP (((dvm)->stack.stack[dvm->stack.stack_pointer -1 ]))
+
 #define STI(dvm, sp) ((dvm)->stack.stack[dvm->stack.stack_pointer + (sp)].int_value)
 #define STD(dvm, sp) ((dvm)->stack.stack[dvm->stack.stack_pointer + (sp)].double_value)
 #define STO(dvm, sp) ((dvm)->stack.stack[dvm->stack.stack_pointer + (sp)].object)
@@ -343,6 +345,8 @@ static DVM_ObjectRef chain_string(DVM_VirtualMachine *dvm, DVM_ObjectRef str1, D
 	
 	size_t len = left_len + right_len;
 	DVM_Char *str = MEM_malloc(sizeof(DVM_Char) * (len + 1));
+	dvm_wcscpy(str, left_str);
+	dvm_wcscat(str, right_str);
 	 return dvm_create_dvm_string_i(dvm, str);
 	
 }
@@ -542,10 +546,12 @@ static void invoke_mango_function(DVM_VirtualMachine *dvm, Function **caller_p,F
 		dvm->stack.pointer_flags[*sp_p - 1 + i] = DVM_FALSE;
 	}
 	*base_p = *sp_p - 1 - dvm_callee->parameter_count;
+	if (dvm_callee->is_method) {
+		*base_p = *base_p -1;
+	}
 	*caller_p = callee;
 	
 	initialize_local_variable(dvm, dvm_callee, *sp_p - 1 + CALL_INFO_ALIGN_ZISE);
-	
 	*sp_p = *sp_p + CALL_INFO_ALIGN_ZISE + dvm_callee->local_variable_count - 1;
 	*pc_p = 0;
 	*code_p = dvm_callee->code_block.code;
@@ -578,6 +584,7 @@ static DVM_Boolean do_return(DVM_VirtualMachine *dvm, Function **func_p, DVM_Byt
 		*code_p = dvm->top_level->executable->top_level.code;
 		*code_size_p = dvm->top_level->executable->top_level.code_size;
 	}
+	dvm->stack.stack_pointer = *base_p;
 	*func_p = call_info->caller;
 	*base_p = call_info->base;
 	*pc_p = call_info->caller_address + 1;
@@ -622,7 +629,35 @@ check_down_cast(DVM_VirtualMachine *dvm, DVM_ObjectRef *obj, size_t target_idx,
 	return DVM_SUCCESS;
 }
 
+void dvm_print_code(DVM_Byte *code, size_t code_size){
+	for (size_t i = 0; i < code_size; i++) {
+		DVM_Opcode op_code = code[i];
+		char *param = dvm_opcode_info[op_code].parameter;
+		char *name = dvm_opcode_info[op_code].mnemonic;
+		printf("%s(%d) ",name, op_code);
+		for (size_t j = 0; param[j] != '\0'; j++) {
+			switch (param[j]) {
+				case 'b':
+					printf("%d",code[i +1]);
+					i++;
+					break;
+				case 'p':
+				case 's':
+					printf("%d", GET_2BYTE_INT(&code[i +1]));
+					i+=2;
+					break;
+					
+				default:
+					break;
+			}
+		}
+		printf("\n");
+	}
+}
+
+
 DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base){
+	int x = DVM_PUSH_STACK_OBJECT;
 	ExecutableEntry *ee = dvm->current_executable;
 	DVM_Executable *exe = ee->executable;
 	size_t pc = dvm->pc;
@@ -998,6 +1033,7 @@ DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code,
 					dvm->stack.stack_pointer -= 2;
 					pc += 3;
 				}
+				break;
 			}
 				
 			case DVM_POP_FIELD_DOUBLE:{
@@ -1015,6 +1051,7 @@ DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code,
 					dvm->stack.stack_pointer -= 2;
 					pc += 3;
 				}
+				break;
 			}
 			
 			case DVM_POP_FIELD_OBJECT:{
@@ -1032,6 +1069,7 @@ DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code,
 					dvm->stack.stack_pointer -= 2;
 					pc += 3;
 				}
+				break;
 			}
 			case DVM_ADD_INT:{
 				int v1 = STI(dvm, -2);
@@ -1051,6 +1089,7 @@ DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code,
 			}
 			case DVM_ADD_STRING:{
 				STO(dvm, -2) = chain_string(dvm, STO(dvm, -2), STO(dvm, -1));
+				dvm->stack.stack_pointer--;
 				pc++;
 				break;
 			}
@@ -1541,7 +1580,7 @@ DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code,
 					restore_pc(dvm, ee, func, pc);
 					dvm->current_exception = dvm_null_object_ref;
 					invoke_native_function(dvm, func, dvm->function[func_index], pc, &dvm->stack.stack_pointer, base);
-					if (is_object_null(dvm->current_exception)) {
+					if (!is_object_null(dvm->current_exception)) {
 						if (do_throw(dvm, &func, &code, &code_size, &pc, &base, &ee, &exe, &dvm->current_exception)) {
 							goto EXECUTE_END;
 						}
@@ -1569,6 +1608,7 @@ DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code,
 				STO_WRITE(dvm, 0, dvm_create_class_object_i(dvm, index));
 				dvm->stack.stack_pointer++;
 				pc += 3;
+				break;
 			}
 			case DVM_NEW_ARRAY:{
 				int dim = code[pc + 1];

@@ -46,6 +46,7 @@ DVM_Char *mgc_close_string_literal(void){
 	}
 	DVM_Char *new_str = malloc(sizeof(DVM_Char) * (wcs_len + 1));
 	dvm_mbstowcs(st_string_literal_buffer, new_str);
+	mgc_rest_string_literal_buffer();
 	return new_str;
 }
 int mgc_close_character_literal(void){
@@ -58,6 +59,7 @@ int mgc_close_character_literal(void){
 	}
 	DVM_Char buf[16];
 	dvm_mbstowcs(st_string_literal_buffer, buf);
+	mgc_rest_string_literal_buffer();
 	return buf[0];
 }
 

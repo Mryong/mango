@@ -1,8 +1,12 @@
-public interface A{
+public class Person{
 
+	private string name = "雍鹏亮";
+	
+	public void introduce(){
+        print("hello world, my name is:" + this.name + "! \n");
+	}
 
 }
 
-int a(int b, int c){
-
-}
+Person p = new Person();
+p.introduce();

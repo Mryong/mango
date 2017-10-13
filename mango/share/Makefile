@@ -1,6 +1,6 @@
 TARGET = share.o
 CC = gcc
-CFLAGS  = -c -g -Wall -DEBUG
+CFLAGS  = -c -g -Wall -DEBUG -fshort-enums
 INCLUDE = -I../include
 OBJS = wchar.o util.o opcode.o
 

@@ -1,6 +1,6 @@
 TARGET = conpiler.o
 CC = gcc
-CFLAGS = -c -g -Wall -DDEBUG
+CFLAGS = -c -g -Wall -DDEBUG -fshort-enums
 OBJS = lex.yy.o y.tab.o create.o string.o util.o  fix_tree.o generate.o interface.o
 
 INCLUDES = -I ../include

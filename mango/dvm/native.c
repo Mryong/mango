@@ -17,7 +17,7 @@ static DVM_Value nv_print_proc(DVM_VirtualMachine *dvm, DVM_Context *context,siz
 	ret.int_value = 1;
 	DBG_assert(argc == 1, "argc = %d", argc);
 	DVM_Char *str;
-	if (args) {
+	if (!args) {
 		str = NULL_STRING;
 	}else{
 		str = args[0].object.data->u.string.string;

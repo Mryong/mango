@@ -1,6 +1,6 @@
 TARGET = mango
 CC = gcc
-CFLAGS = -c -g -DEBUG -Wall
+CFLAGS = -c -g -DEBUG -Wall -fshort-enums
 INCLUDES = -I/usr/local/include -I../include
 OBJS = main.o\
  ../compiler/conpiler.o\

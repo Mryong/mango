@@ -20,7 +20,7 @@ int test(){
 	return a++;
 }
 
-
+#include "DVM_code.h"
 int main(int argc,char * argv[]){
 	setlocale(LC_CTYPE, "zh_CN.UTF-8");
 
@@ -45,6 +45,7 @@ int main(int argc,char * argv[]){
 	DVM_VirtualMachine *dvm = dvm_create_virtual_machine();
 	DVM_set_executable(dvm, list);
 	mgc_dispose_compiler(compler);
+	dvm_execute(dvm);
 	
 	
 	

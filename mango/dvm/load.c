@@ -179,6 +179,7 @@ static void add_functions(DVM_VirtualMachine *dvm, ExecutableEntry *entry){
 				
 				if (entry->executable->function[i].is_implemented && dvm->function[j]->is_implemented) {
 					//error
+					DBG_assert(0, "");
 				}
 				
 				if (entry->executable->function[i].is_implemented) {
@@ -443,7 +444,9 @@ size_t dvm_search_class(DVM_VirtualMachine *dvm, char *package_name, char *name)
 			return i;
 		}
 	}
-	//error
+	dvm_error_i(NULL, NULL, NO_LINE_NUMBER_PC, CLASS_NOT_FOUND_ERR,
+				DVM_STRING_MESSAGE_ARGUMENT, "name", name,
+				DVM_MESSAGE_ARGUMENT_END);
 	return -1;
 }
 
@@ -482,6 +485,7 @@ static void add_classes(DVM_VirtualMachine *dvm, ExecutableEntry *entry){
 				&& !strcmp(src->name, dest->name)) {
 				if (src->is_implemented && dest->is_implemented) {
 					//error
+					DBG_assert(0, "");
 				}
 				if (src->is_implemented) {
 					add_class(dvm, entry->executable, src, dest);
@@ -511,6 +515,7 @@ static void add_classes(DVM_VirtualMachine *dvm, ExecutableEntry *entry){
 		}else{
 			exe_class->package_name = NULL;
 		}
+		exe_class->dvm_calss = src_class;
 		exe_class->name = MEM_strdup(src_class->name);
 		exe_class->executable = entry;
 		exe_class->is_implemented = src_class->is_implemented;

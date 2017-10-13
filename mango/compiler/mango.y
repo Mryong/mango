@@ -842,27 +842,7 @@ class_definition: class_or_interface IDENTIFIER extends LC
                 ;
 
 
-class_or_member_modifier_list: class_or_member_modifier
-                | class_or_member_modifier_list class_or_member_modifier
-                {
-                        $$ = mgc_chain_class_or_member_modifier($1,$2);
-                }
-                ;
 
-class_or_member_modifier: access_modifier
-                 | VIRTUAL_T
-                 {
-                        $$ = mgc_create_class_or_member_modifier(VIRTUAL_MODIFIER);
-                 }
-                 | OVERRIED_T
-                 {
-                        $$ = mgc_create_class_or_member_modifier(OVERRIDE_MODIFIER);
-                 }
-                 | ABSTRACT_T
-                 {
-                        $$ = mgc_create_class_or_member_modifier(ABSTRACT_MODIFIER);
-                 }
-                 ;
 
 
 class_or_interface: CLASS_T
@@ -909,11 +889,13 @@ member_declaration: method_member
                 | field_member
                 ;
 
+
+
 method_member: method_function_definition
                 {
                         $$ = mgc_create_method_member(NULL,$1,DVM_FALSE);
                 }
-                | class_or_member_modifier_list method_function_definition
+                | class_or_member_modifier method_function_definition
                 {
                         $$ = mgc_create_method_member(&$1,$2,DVM_FALSE);
                 }
@@ -921,11 +903,12 @@ method_member: method_function_definition
                 {
                         $$ = mgc_create_method_member(NULL,$1,DVM_TRUE);
                 }
-                | class_or_member_modifier constructor_definition
+                | class_or_member_modifier_list constructor_definition
                 {
                         $$ = mgc_create_method_member(&$1,$2,DVM_TRUE);
                 }
-                ;
+				;
+
 
 method_function_definition: type_specifier IDENTIFIER LP parameter_list RP throws_clause block
                 {
@@ -984,6 +967,27 @@ constructor_definition: CONSTRUCTOR IDENTIFIER LP parameter_list RP throws_claus
                 }
                 ;
 
+class_or_member_modifier_list: class_or_member_modifier
+| class_or_member_modifier_list class_or_member_modifier
+{
+	$$ = mgc_chain_class_or_member_modifier($1,$2);
+}
+;
+
+class_or_member_modifier: access_modifier
+| VIRTUAL_T
+{
+	$$ = mgc_create_class_or_member_modifier(VIRTUAL_MODIFIER);
+}
+| OVERRIED_T
+{
+	$$ = mgc_create_class_or_member_modifier(OVERRIDE_MODIFIER);
+}
+| ABSTRACT_T
+{
+	$$ = mgc_create_class_or_member_modifier(ABSTRACT_MODIFIER);
+}
+;
 
 access_modifier: PUBLIC_T
                 {

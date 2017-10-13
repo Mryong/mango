@@ -7,7 +7,7 @@
 
 
 static void increment_line_number(){
-
+	mgc_get_current_compiler()->current_line_number++;
 }
 
 static yy_size_t smaller(yy_size_t a, yy_size_t b){

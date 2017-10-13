@@ -42,6 +42,7 @@ typedef enum {
 
 DVM_VirtualMachine *dvm_create_virtual_machine(void);
 void DVM_set_executable(DVM_VirtualMachine *dvm, DVM_ExecutableList *list);
+DVM_Value dvm_execute(DVM_VirtualMachine *dvm);
 
 
 

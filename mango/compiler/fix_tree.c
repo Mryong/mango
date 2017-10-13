@@ -288,7 +288,7 @@ static TypeSpecifier *create_function_derive_type(FunctionDefinition *fd){
 static Expression *fix_identifier_expression(Block *current_block, Expression *expr){
 	
 	MGC_Compiler *compiler = mgc_get_current_compiler();
-	
+	char *name = expr->u.identifer_express.name;
 	Declaration *decl = mgc_search_declaration(expr->u.identifer_express.name, current_block);
 	if (decl) {
 		expr->type = decl->type;
@@ -553,7 +553,7 @@ static Expression *fix_assign_expression(Block *current_block, Expression *expr,
 	}else if(left->kind != INDEX_EXPRESSION){
 		mgc_compile_error(expr->line_number, NOT_LVALUE_ERR, MESSAGE_ARGUMENT_END);
 	}
-	
+	expr->u.assignment_expression.operand = fix_expression(current_block, expr->u.assignment_expression.operand, expr, el_p);
 	Expression *operand= expr->u.assignment_expression.operand;
 	expr->u.assignment_expression.operand = create_assign_cast(operand, left->type);
 	expr->type = left->type;
@@ -1099,7 +1099,7 @@ static Expression *fix_function_call_expression(Block *current_block, Expression
 	}
 	
 	add_exception(el_p, throws);
-	check_argument(current_block, expr->line_number, param, function_expr->u.function_call_expression.argument, el_p, array_base_p);
+	check_argument(current_block, expr->line_number, param, expr->u.function_call_expression.argument, el_p, array_base_p);
 	
 	TypeSpecifier *type = malloc(sizeof(TypeSpecifier));
 	*type = *func_type;
@@ -1138,7 +1138,7 @@ static void check_member_accessibility(int line_number, ClassDefinition *target_
 	}
 	
 	if (!mgc_equal_package_name(compiler->package_name, target_class->package_name)) {
-		if (member->access_modifier != PUBLIC_MODIFIER) {
+		if (member->access_modifier != DVM_PUBLIC_MODIFIER) {
 			mgc_compile_error(line_number, PACKAGE_MEMBER_ACCESS_ERR, STRING_MESSAGE_ARGUMENT, "member_name", member_name);
 		}
 	}
@@ -1461,7 +1461,7 @@ static Expression *fix_new_expression(Block *current_block, Expression *expr, Ex
 	DBG_assert(member->u.method.function_definition->type->derive == NULL && member->u.method.function_definition->type->base_type == DVM_VOID_TYPE, "constructor is not void \n");
 	
 	check_argument(current_block, expr->line_number, member->u.method.function_definition->parameter_list, expr->u.new_e.argument, el_p, NULL);
-	
+	expr->u.new_e.method_delclaration = member;
 	TypeSpecifier *type = mgc_alloc_type_specifier(DVM_CLASS_TYPE);
 	type->identifier = cd->name;
 	type->u.class_ref.class_definition = cd;
@@ -1980,7 +1980,7 @@ static void add_return_statement(FunctionDefinition *fd, ExceptionList **el_p){
 		last_p = & fd->block->statement_list;
 	}else{
 		StatementList *last = NULL;
-		for (last = fd->block->statement_list; last; last  = last->next){
+		for (last = fd->block->statement_list; last->next; last = last->next){
 			if (last->statement->type == RETURN_STATEMENT) {
 				return;
 			}
@@ -2195,9 +2195,9 @@ static void fix_class_list(MGC_Compiler *compiler){
 		MemberDeclaration *abstract_method = NULL;
 		for (MemberDeclaration *member_pos = class_pos->member; member_pos; member_pos = member_pos->next) {
 			if (member_pos->kind == METHOD_MEMBER) {
+				fix_function(member_pos->u.method.function_definition);
 				MemberDeclaration *super_member = search_member_in_super(class_pos, member_pos->u.method.function_definition->name);
 				if (super_member) {
-					fix_function(member_pos->u.method.function_definition);
 					if (super_member->kind == FIELD_MEMBER) {
 						mgc_compile_error(member_pos->line_number, FIELD_VOERRIDED_ERR, STRING_MESSAGE_ARGUMENT, "name",
 										  super_member->u.field.name, MESSAGE_ARGUMENT_END);
@@ -2225,7 +2225,7 @@ static void fix_class_list(MGC_Compiler *compiler){
 				
 			}else{
 				DBG_assert(member_pos->kind == FIELD_MEMBER, "member_pos->kind..%d",member_pos->kind);
-				MemberDeclaration *super_member = search_member_in_super(class_pos, member_pos->u.method.function_definition->name);
+				MemberDeclaration *super_member = search_member_in_super(class_pos, member_pos->u.field.name);
 				if (super_member) {
 					mgc_compile_error(member_pos->line_number, FIELD_NAME_DUPLICATE_ERR, STRING_MESSAGE_ARGUMENT, "name",
 									  member_pos->u.field.name, MESSAGE_ARGUMENT_END);
@@ -2253,7 +2253,7 @@ static void fix_class_list(MGC_Compiler *compiler){
 }
 
 static void fix_enum_list(MGC_Compiler *compiler){
-	for (EnumDefinition *enum_pos = compiler->enum_definition_list; enum_pos; enum_pos = enum_pos) {
+	for (EnumDefinition *enum_pos = compiler->enum_definition_list; enum_pos; enum_pos = enum_pos->next) {
 		enum_pos->index = reserve_enum_index(compiler, enum_pos, DVM_TRUE);
 	}
 }

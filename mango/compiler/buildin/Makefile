@@ -1,7 +1,7 @@
 TARGET = buildin.o
 CC = gcc
 
-CFLAGS = -c -g -Wall -DEBUG
+CFLAGS = -c -g -Wall -DEBUG -fshort-enums
 INCLUDES = -I../../include
 
 ${TARGET}: buildin.c

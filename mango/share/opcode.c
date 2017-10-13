@@ -11,7 +11,9 @@
 #include "DVM.h"
 
 
+
 DVM_ObjectRef dvm_null_object_ref = {NULL,NULL};
+
 
 OpcodeInfo dvm_opcode_info[] = {
 	{"dummy", "", 0},

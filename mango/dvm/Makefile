@@ -1,7 +1,7 @@
 TARGET = dvm.o
 OBJS = load.o native.o nativeif.o util.o execute.o heap.o wchar.o error_message.o error.o
 CC = gcc
-CFLAGS = -c -Wall -DEBUG -I../include
+CFLAGS = -c -Wall -DEBUG -I../include -fshort-enums
 
 
 ${TARGET}: ${OBJS}

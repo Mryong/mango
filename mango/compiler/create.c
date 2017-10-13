@@ -19,9 +19,9 @@
 
 DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl){
 	DeclarationList *add = mgc_malloc(sizeof(*add));
+	add->declaration = decl;
 	add->next = NULL;
 	if (list == NULL) {
-		add->declaration = decl;
 		return add;
 	}
 	

@@ -1,7 +1,7 @@
 TARGET = dbg.o
 OBJS = debug.o
 CC = gcc
-CFLAGS = -c -g -Wall -DEBUG
+CFLAGS = -c -g -Wall -DEBUG -fshort-enums
 INCLUDE = -I../include
 
 ${TARGET}: ${OBJS}

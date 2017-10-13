@@ -136,10 +136,6 @@ DVM_Boolean mgc_equal_type(TypeSpecifier *type1, TypeSpecifier *type2){
 
 
 DVM_Boolean mgc_equal_package_name(PackageName *package_name1, PackageName *package_name2){
-	if (package_name1 == NULL || package_name2 == NULL) {
-		return DVM_FALSE;
-	}
-	
 	
 	PackageName *last1 = package_name1;
 	PackageName *last2 = package_name2;
@@ -429,10 +425,14 @@ MemberDeclaration *mgc_search_member(ClassDefinition *class_def,char *member_nam
 	MemberDeclaration *member;
 	for (member = class_def->member; member; member = member->next) {
 		if (member->kind == METHOD_MEMBER) {
-			break;
+			if (!strcmp(member->u.method.function_definition->name, member_name)) {
+				break;
+			}
 			
 		}else if (member->kind == FIELD_MEMBER){
-			break;
+			if (!strcmp(member->u.field.name, member_name)) {
+				break;
+			}
 		}else{
 			
 		}
