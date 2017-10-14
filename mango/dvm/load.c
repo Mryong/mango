@@ -549,7 +549,7 @@ static void conver_code(DVM_Byte *code, size_t code_size, DVM_Function *func){
 				param_count = func->parameter_count;
 			}
 			size_t  index = GET_2BYTE_INT(&code[i+1]);
-			if (index > param_count) {
+			if (index >= param_count) {
 				index = index + CALL_INFO_ALIGN_ZISE;
 				SET_2BYTE_INT(&code[i+1], index);
 			}

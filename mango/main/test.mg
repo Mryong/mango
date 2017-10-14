@@ -1,12 +1,5 @@
-public class Person{
-
-	private string name = "雍鹏亮";
-	
-	public void introduce(){
-        print("hello world, my name is:" + this.name + "! \n");
-	}
-
+void say(string content){
+print("hhhah" + content);
 }
 
-Person p = new Person();
-p.introduce();
+say("c");

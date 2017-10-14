@@ -518,13 +518,19 @@ static void invoke_native_function(DVM_VirtualMachine *dvm, Function *caller, Fu
 }
 
 static void initialize_local_variable(DVM_VirtualMachine *dvm, DVM_Function *func, size_t from_sp){
-	for (size_t i = 0; i < func->parameter_count; i++) {
-		DVM_TypeSpecifier *type = func->parameter[from_sp+i].type;
-		dvm_initial_value(type, &dvm->stack.stack[from_sp + i]);
-		if (is_pointer_type(type)) {
-			dvm->stack.pointer_flags[from_sp + i] = DVM_TRUE;
-		}else{
-			dvm->stack.pointer_flags[from_sp + i] = DVM_FALSE;
+	size_t i;
+	size_t sp_idx;
+	
+	for (i = 0, sp_idx = from_sp; i < func->local_variable_count;
+		 i++, sp_idx++) {
+		dvm->stack.pointer_flags[sp_idx] = DVM_FALSE;
+	}
+	
+	for (i = 0, sp_idx = from_sp; i < func->local_variable_count;
+		 i++, sp_idx++) {
+		dvm_initial_value(func->locak_variable[i].type, &dvm->stack.stack[sp_idx]);
+		if (is_pointer_type(func->locak_variable[i].type)) {
+			dvm->stack.pointer_flags[sp_idx] = DVM_TRUE;
 		}
 	}
 }
@@ -657,7 +663,6 @@ void dvm_print_code(DVM_Byte *code, size_t code_size){
 
 
 DVM_Value dvm_execute_i(DVM_VirtualMachine *dvm, Function *func, DVM_Byte *code, size_t code_size, size_t base){
-	int x = DVM_PUSH_STACK_OBJECT;
 	ExecutableEntry *ee = dvm->current_executable;
 	DVM_Executable *exe = ee->executable;
 	size_t pc = dvm->pc;

@@ -286,8 +286,8 @@ static DVM_Executable *do_compiler(MGC_Compiler *compiler, DVM_ExecutableList *l
 	MGC_Compiler *compiler_backup = mgc_get_current_compiler();
 	mgc_set_current_compiler(compiler);
 	if (yyparse()) {
+		fprintf(stderr,"Error! Error! Error! line:%d \n", compiler->current_line_number);
 		assert(0);
-		fprintf(stderr,"Error! Error! Error!\n line:%d", compiler->current_line_number);
 		exit(1);
 	}
 	
