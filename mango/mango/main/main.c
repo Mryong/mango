@@ -46,6 +46,7 @@ int main(int argc,char * argv[]){
 	DVM_set_executable(dvm, list);
 	mgc_dispose_compiler(compler);
 	dvm_execute(dvm);
+
 	
 	
 	

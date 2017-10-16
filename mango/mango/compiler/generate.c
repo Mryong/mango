@@ -75,6 +75,7 @@ static void init_code_buf(OpcodeBuf *code_buf){
 	code_buf->size = 0;
 	code_buf->code = NULL;
 	code_buf->label_table_szie = 0;
+	code_buf->label_table_alloc_size = 0;
 	code_buf->label_table = 0;
 	code_buf->label_table = NULL;
 	code_buf->line_number_size = 0;

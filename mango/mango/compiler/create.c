@@ -24,7 +24,6 @@ DeclarationList *mgc_chain_declaration(DeclarationList *list,Declaration *decl){
 	if (list == NULL) {
 		return add;
 	}
-	
 	DeclarationList *last = list;
 	while (last->next != NULL) {
 		last = last->next;

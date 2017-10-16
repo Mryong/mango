@@ -1645,7 +1645,7 @@ static void fix_if_statement(Block *current_block, IfStatement *if_s, FunctionDe
 	}
 	
 	if (if_s->else_block) {
-		fix_statement_list(if_s->then_block, if_s->then_block->statement_list, fd, el_p);
+		fix_statement_list(if_s->else_block, if_s->else_block->statement_list, fd, el_p);
 	}
 }
 
@@ -1704,7 +1704,7 @@ static void fix_return_statement(Block *current_block, Statement *return_s, Func
 	if (fd->type->base_type == DVM_VOID_TYPE && fd->type->derive == NULL && return_s->u.return_s.return_value != NULL) {
 		mgc_compile_error(return_s->line_number, RETURN_IN_VOID_FUNCTION_ERR, MESSAGE_ARGUMENT_END);
 	}
-
+	return_s->u.return_s.return_value = fix_expression(current_block, return_s->u.return_s.return_value, NULL, el_p);
 	if (return_s->u.return_s.return_value == NULL) {
 		Expression *return_value = NULL;
 		if (fd->type->derive != NULL) {
@@ -1748,7 +1748,6 @@ static void fix_return_statement(Block *current_block, Statement *return_s, Func
 		return_s->u.return_s.return_value = return_value;
 		return;
 	}
-	
 	return_s->u.return_s.return_value = create_assign_cast(return_s->u.return_s.return_value, fd->type);
 }
 

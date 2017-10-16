@@ -185,7 +185,7 @@ FunctionDefinition *mgc_search_function(char *name){
 	MGC_Compiler *compiler = mgc_get_current_compiler();
 	
 	for (FunctionDefinition	*fun_pos = compiler->function_list; fun_pos; fun_pos = fun_pos->next) {
-		if (!strcmp(fun_pos->name, name) && fun_pos->class_definition != NULL) {
+		if (!strcmp(fun_pos->name, name) && fun_pos->class_definition == NULL) {
 			return fun_pos;
 		}
 	}
