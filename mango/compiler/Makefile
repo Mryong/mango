@@ -31,7 +31,7 @@ generate.o: generate.c mangoc.h ../include/DVM.h
 interface.o: interface.c mangoc.h ../include/DVM.h
 
 clean:
-	-rm ${TARGET} ${OBJS}
+	-rm ${TARGET} ${OBJS} y.output y.tab.c y.tab.h
 
 
 

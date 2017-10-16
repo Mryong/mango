@@ -19,7 +19,12 @@ ${TARGET}:${OBJS}
 
 
 clean:
-	-rm -f ${OBJS} ${TARGET}
+	cd ../compiler;$(MAKE) clean
+	cd ../compiler/buildin;$(MAKE) clean
+	cd ../share;$(MAKE) clean
+	cd ../debug;$(MAKE) clean
+	cd ../dvm;$(MAKE) clean
+	-rm -f main.o ${TARGET}
 
 all:
 	make clean; ${MAKE}
