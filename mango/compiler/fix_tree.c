@@ -14,6 +14,7 @@
 #include "MEM.h"
 #include "DBG.h"
 
+
 static size_t reserve_function_index(MGC_Compiler *compiler, FunctionDefinition *src){
 	if (src->class_definition && src->block == NULL) {
 		return ABSTRACT_METHOD_INDEX;
@@ -492,9 +493,9 @@ static Expression *create_assign_cast(Expression *src, TypeSpecifier *dest){
 				return cast_expr;
 			}
 			return src;
+		}else{
+			cast_mismatch_error(src->line_number, src->type, dest);
 		}
-	}else{
-		cast_mismatch_error(src->line_number, src->type, dest);
 	}
 	
 	if (mgc_is_function(src->type) && mgc_is_delegate(dest)) {
