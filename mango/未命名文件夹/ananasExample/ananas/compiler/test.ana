@@ -1,0 +1,25 @@
+
+//声明在OC中已定义的结构体
+declare struct CGAffineTransform{
+	types:ffffff,
+	keys:a, b, c, d, tx, ty
+}
+
+
+//定义类
+class ABC: UIViewController <UITableViewDelegate,UITableViewDataSource> {
+
+@property(weak,nonatomic) UITableView tableView; //暂时只支持strong，weak, copy, assign/nonatomic,atomic
+
+- (void)viewDidLoad{
+
+
+
+
+
+- (void)testMemodParam1:(NSInteger)p1 param2:(void (^)(NSInteger, NSInteger))param2{
+	param2(1,2);
+}
+
+
+}
