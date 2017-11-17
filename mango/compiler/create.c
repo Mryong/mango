@@ -219,8 +219,6 @@ void mgc_function_define(TypeSpecifier *type, char *identifier,
 	}
 	
 	mgc_create_function_definition(type, identifier, parameter_list, exception_list, block);
-	
-	
 
 
 }
